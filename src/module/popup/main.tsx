@@ -1,9 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
+import { RouterProvider } from 'react-router-dom'
+import '@arco-design/web-react/dist/css/arco.css'
+import router from './router'
 
-createRoot(document.getElementById('webwings-popup-root')!).render(
+const rootElement = document.getElementById('webwings-popup-root')
+if (!rootElement) {
+  throw new Error('没有找到webwings-popup-root')
+}
+createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <RouterProvider router={router} />
   </StrictMode>,
 )
