@@ -1,0 +1,26 @@
+{
+  "name": "WebWings",
+  "description": "WebWings: 全能浏览器工具包",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "icons": {
+    "16": "imgs/logo.png",
+    "48": "imgs/logo.png",
+    "128": "imgs/logo.png"
+  },
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": "imgs/logo.png"
+  },
+  "side_panel": {
+    "default_path": "sidePanel/index.html",
+    "openPanelOnActionClick": true
+  },
+  "permissions": [
+    "tabs",
+    "sidePanel"
+  ],
+  "background": {
+    "service_worker": "background/main.js"
+  }
+}
