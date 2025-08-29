@@ -1,9 +1,9 @@
 import styles from './index.module.less'
 
-const Layout = () => {
+const Error = () => {
   return (
     <div className={styles.webwingsError}>出现错误</div>
   )
 }
 
-export default Layout
+export default Error
