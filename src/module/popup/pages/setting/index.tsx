@@ -1,15 +1,11 @@
 import styles from './index.module.less'
 
-const Layout = () => {
+const Setting = () => {
   return (
-    <div className={styles.webwingsLayout}>
-      <div className={styles.header}>1</div>
-      <div className={styles.content}>
-        <div className={styles.sideBar}>2</div>
-        <div className={styles.main}>3</div>
-      </div>
+    <div className={styles.webwingsSetting}>
+      Setting
     </div>
   )
 }
 
-export default Layout
+export default Setting

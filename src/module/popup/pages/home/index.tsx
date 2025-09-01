@@ -1,15 +1,22 @@
+import { Button } from '@arco-design/web-react'
 import styles from './index.module.less'
 
-const Layout = () => {
+const changeColor = () => {
+  const currentTheme = document.body.getAttribute('arco-theme')
+  if (currentTheme === 'dark') {
+    document.body.setAttribute('arco-theme', 'light')
+    return
+  }
+  document.body.setAttribute('arco-theme', 'dark')
+}
+
+const Home = () => {
   return (
-    <div className={styles.webwingsLayout}>
-      <div className={styles.header}>1</div>
-      <div className={styles.content}>
-        <div className={styles.sideBar}>2</div>
-        <div className={styles.main}>3</div>
-      </div>
+    <div className={styles.webwingsHome}>
+      Home
+      <Button onClick={changeColor}>切换颜色</Button>
     </div>
   )
 }
 
-export default Layout
+export default Home
