@@ -1,8 +1,22 @@
 import styles from './index.module.less'
 import { menuList } from '@/module/popup/router/menu'
-import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { IconSettings } from '@arco-design/web-react/icon'
+import { useAtom } from 'jotai'
+
+import {
+  IconSettings,
+  IconLayout,
+  IconTranslate,
+  IconMoon,
+  IconSun,
+} from '@arco-design/web-react/icon'
+
+import {
+  themeAtom,
+  siderCollapsedAtom,
+} from '@/module/popup/store'
+
+import { Popover } from '@arco-design/web-react'
 
 const Sider = () => {
   // 路由
@@ -15,16 +29,17 @@ const Sider = () => {
   }
 
   // 主题
-  const theme = localStorage.getItem('theme') || 'light'
-  // const changeTheme = (theme: string) => {
-  //   localStorage.setItem('theme', theme)
-  //   document.body.setAttribute('arco-theme', theme)
-  // }
+  const [theme, setTheme] = useAtom(themeAtom)
+  const themeName = theme === 'auto' ? '跟随系统' : theme === 'dark' ? '暗黑模式' : '亮色模式'
+  const themeIcon = theme === 'auto' ? IconTranslate : theme === 'dark' ? IconMoon : IconSun
+  const changeTheme = (theme: string) => {
+    setTheme(theme)
+  }
 
   // 收起侧边栏
-  const [collapsed, setCollapsed] = useState(false)
+  const [siderCollapsed, setSiderCollapsed] = useAtom(siderCollapsedAtom)
   const toggleCollapsed = () => {
-    setCollapsed(!collapsed)
+    setSiderCollapsed(!siderCollapsed)
   }
 
   // 操作按钮
@@ -39,28 +54,30 @@ const Sider = () => {
     },
     {
       key: '/__theme',
-      name: theme === 'dark' ? '亮色模式' : '暗黑模式',
-      action: () => {},
-      icon: IconSettings,
+      name: themeName,
+      action: () => {
+        changeTheme(theme === 'auto' ? 'light' : theme === 'light' ? 'dark' : 'auto')
+      },
+      icon: themeIcon,
     },
     {
       key: '/__collapse',
-      name: collapsed ? '打开侧边栏' : '收起侧边栏',
+      name: siderCollapsed ? '打开侧边栏' : '收起侧边栏',
       action: () => {
         toggleCollapsed()
       },
-      icon: IconSettings,
+      icon: IconLayout,
     },
   ]
 
   return (
     <div
       className={styles.webwingsSider}
-      style={{ width: collapsed ? '48px' : '220px' }}
+      style={{ width: siderCollapsed ? '48px' : '220px' }}
     >
       <div
         className={styles.title}
-        style={{ flexBasis: collapsed ? '0' : '48px' }}
+        style={{ flexBasis: siderCollapsed ? '0' : '48px' }}
       >
         <span>WebWings</span>
       </div>
@@ -70,8 +87,8 @@ const Sider = () => {
             key={item.path}
             className={`${styles.menuItem} ${currentPath === item.path ? styles.active : ''}`}
             style={{
-              width: collapsed ? '32px' : '204px',
-              padding: collapsed ? '0 8px' : '0 12px',
+              width: siderCollapsed ? '32px' : '204px',
+              padding: siderCollapsed ? '0 8px' : '0 12px',
             }}
             onClick={() => handleMenuClick(item.path)}
           >
@@ -87,23 +104,29 @@ const Sider = () => {
       </div>
       <div
         className={styles.action}
-        style={{ flexBasis: collapsed ? `${8 + actionList.length * 40}px` : '48px' }}
+        style={{ flexBasis: siderCollapsed ? `${8 + actionList.length * 40}px` : '48px' }}
       >
         {actionList.map((item, index) => (
-          <div
+          <Popover
             key={item.key}
-            className={`${styles.actionItem} ${currentPath === item.key ? styles.active : ''}`}
-            style={{
-              left: collapsed ? '8px' : `${8 + index * 40}px`,
-              top: collapsed ? `${8 + index * 40}px` : '8px',
-            }}
-            onClick={item.action}
+            className={styles.actionPopover}
+            content={ item.name }
+            position={ siderCollapsed ? 'right' : 'top'}
           >
-            <item.icon
-              style={currentPath === item.key ? { color: 'rgb(var(--primary-6))' } : {}}
-              fontSize={18}
-            />
-          </div>
+            <div
+              className={`${styles.actionItem} ${currentPath === item.key ? styles.active : ''}`}
+              style={{
+                left: siderCollapsed ? '8px' : `${8 + index * 40}px`,
+                top: siderCollapsed ? `${8 + index * 40}px` : '8px',
+              }}
+              onClick={item.action}
+            >
+              <item.icon
+                style={currentPath === item.key ? { color: 'rgb(var(--primary-6))' } : {}}
+                fontSize={18}
+              />
+            </div>
+          </Popover>
         ))}
       </div>
     </div>
