@@ -1,15 +1,14 @@
 import styles from './index.module.less'
 import { Outlet } from 'react-router-dom'
 
+import Sider from './components/Sider'
+
 const Layout = () => {
   return (
     <div className={styles.webwingsLayout}>
-      <div className={styles.header}>Header</div>
-      <div className={styles.content}>
-        <div className={styles.sider}>Sider</div>
-        <div className={styles.main}>
-          <Outlet />
-        </div>
+      <Sider />
+      <div className={styles.main}>
+        <Outlet />
       </div>
     </div>
   )
