@@ -1,4 +1,5 @@
 import { atom } from 'jotai'
+import { atomWithStorage } from 'jotai/utils'
 import { setSystemTheme } from '@/utils/theme'
 
 // 主题
@@ -18,14 +19,7 @@ const themeAtom = atom(
 )
 
 // 侧边栏是否收起
-const _siderCollapsedAtom = atom(localStorage.getItem('__siderCollapsed') === 'true' || false)
-const siderCollapsedAtom = atom(
-  (get) => get(_siderCollapsedAtom),
-  (_, set, newBool: boolean) => {
-    set(_siderCollapsedAtom, newBool)
-    localStorage.setItem('__siderCollapsed', newBool.toString())
-  },
-)
+const siderCollapsedAtom = atomWithStorage('__siderCollapsed', localStorage.getItem('__siderCollapsed') === 'true')
 
 export {
   themeAtom,
