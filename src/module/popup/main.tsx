@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import router from './router'
 import '@arco-design/web-react/dist/css/arco.css'
-import '@/styles/global.less'
 
 import { listenSystemTheme } from '@/utils/theme'
 

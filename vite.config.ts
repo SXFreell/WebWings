@@ -54,6 +54,14 @@ export default defineConfig(({ mode }) => ({
       },
     },
   ],
+  css: {
+    preprocessorOptions: {
+      less: {
+        additionalData: '@import "@/styles/global.less";',
+        javascriptEnabled: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve('./src'),
