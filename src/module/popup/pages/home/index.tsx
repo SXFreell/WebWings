@@ -3,6 +3,7 @@ import Header from './components/Header'
 import { useRef, useEffect, useState } from 'react'
 
 const Home = () => {
+  // 记录滚动位置
   const contentRef = useRef<HTMLDivElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
   useEffect(() => {
