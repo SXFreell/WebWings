@@ -3,6 +3,8 @@ import { menuList } from '@/module/popup/router/menu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAtom } from 'jotai'
 
+import type { StoreStructure } from '@/module/popup/store/structure'
+
 import {
   IconSettings,
   IconLayout,
@@ -32,7 +34,7 @@ const Sider = () => {
   const [theme, setTheme] = useAtom(themeAtom)
   const themeName = theme === 'auto' ? '跟随系统' : theme === 'dark' ? '暗黑模式' : '亮色模式'
   const themeIcon = theme === 'auto' ? IconTranslate : theme === 'dark' ? IconMoon : IconSun
-  const changeTheme = (theme: string) => {
+  const changeTheme = (theme: StoreStructure['theme']) => {
     setTheme(theme)
   }
 
