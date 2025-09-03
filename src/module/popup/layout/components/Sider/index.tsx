@@ -3,7 +3,7 @@ import { menuList } from '@/module/popup/router/menu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAtom } from 'jotai'
 
-import type { StoreStructure } from '@/module/popup/store/structure'
+import type { StoreStructure } from '@/store/structure'
 
 import {
   IconSettings,
@@ -16,7 +16,7 @@ import {
 import {
   themeAtom,
   siderCollapsedAtom,
-} from '@/module/popup/store'
+} from '@/store'
 
 import { Popover } from '@arco-design/web-react'
 

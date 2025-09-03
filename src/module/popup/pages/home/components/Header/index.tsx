@@ -14,8 +14,8 @@ import {
 import { useState } from 'react'
 import { useAtom } from 'jotai'
 
-import { favoriteConfigAtom } from '@/module/popup/store'
-import type { FavoriteConfig } from '@/module/popup/store/structure'
+import { favoriteConfigAtom } from '@/store'
+import type { FavoriteConfig } from '@/store/structure'
 
 /**
  * 计算头部高度的百分比
@@ -76,7 +76,7 @@ const getDropMenu = <T extends string>(list: DropListItem<T>[], onClick: (key: T
 }
 
 const Header = (
-  props: { scrollTop?: number },
+  props: { scrollTop: number, minTop: number, maxTop: number, showBorder: boolean } = { scrollTop: 0, minTop: 0, maxTop: 0, showBorder: true },
 ) => {
   // 收藏夹配置
   const [favoriteConfig, setFavoriteConfig] = useAtom(favoriteConfigAtom)
@@ -89,22 +89,20 @@ const Header = (
   }
 
   // 将高度转换为百分比
-  const { scrollTop } = props
-  const minHeight = 48
-  const maxHeight = 96
+  const { scrollTop, minTop, maxTop } = props
   const headerScrollStatus = getPercentHeight(
-    minHeight,
-    maxHeight,
-    scrollTop || 0,
+    minTop,
+    maxTop,
+    scrollTop,
   )
-  const height = minHeight + (maxHeight - minHeight) * headerScrollStatus
+  const height = minTop + (maxTop - minTop) * headerScrollStatus
   const titleTextSize = 16 + (24 - 16) * headerScrollStatus
 
   // 收藏夹星标状态
   const [active, setActive] = useState(false)
 
   return (
-    <div className={styles.homeHeader} style={{ height: `${height}px` }}>
+    <div className={`${styles.homeHeader} ${props.showBorder ? styles.homeHeaderBorder : ''}`} style={{ height: `${height}px` }}>
       <div className={styles.titleText}
         style={{
           fontSize: `${titleTextSize}px`,
@@ -113,7 +111,7 @@ const Header = (
       >收藏夹</div>
       <div className={styles.searchBar}
         style={{
-          top: `${minHeight * headerScrollStatus}px`,
+          top: `${minTop * headerScrollStatus}px`,
           left: `${16 + 64 * (1 - headerScrollStatus)}px`,
         }}
       >
@@ -133,7 +131,7 @@ const Header = (
       </div>
       <div className={styles.settingBtns}
         style={{
-          top: `${minHeight * headerScrollStatus}px`,
+          top: `${minTop * headerScrollStatus}px`,
           right: `${16 + 40 * (1 - headerScrollStatus)}px`,
         }}
       >

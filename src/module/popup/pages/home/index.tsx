@@ -1,6 +1,12 @@
 import styles from './index.module.less'
-import Header from './components/Header'
 import { useRef, useEffect, useState } from 'react'
+
+import Header from './components/Header'
+import CollectList from '@/components/CollectList'
+
+const minTop = 48
+const maxTop = 96
+const hasToolbar = true
 
 const Home = () => {
   // 记录滚动位置
@@ -24,13 +30,9 @@ const Home = () => {
 
   return (
     <div className={styles.webwingsHome}>
-      <Header scrollTop={scrollTop} />
-      <div className={styles.content} ref={contentRef}>
-        {Array.from({ length: 40 }, (_, index) => (
-          <div key={index} className={styles.card}>
-            Card {index + 1}
-          </div>
-        ))}
+      <Header scrollTop={scrollTop} minTop={minTop} maxTop={maxTop} showBorder={!hasToolbar} />
+      <div className={styles.content} ref={contentRef} style={{ paddingTop: `${maxTop + (hasToolbar ? 32 : 0)}px` }}>
+        <CollectList scrollTop={scrollTop} minTop={minTop} maxTop={maxTop} hasToolbar={hasToolbar} />
       </div>
     </div>
   )
