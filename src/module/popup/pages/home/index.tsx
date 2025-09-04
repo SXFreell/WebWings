@@ -31,7 +31,7 @@ const Home = () => {
   return (
     <div className={styles.webwingsHome}>
       <Header scrollTop={scrollTop} minTop={minTop} maxTop={maxTop} showBorder={!hasToolbar} />
-      <div className={styles.content} ref={contentRef} style={{ paddingTop: `${maxTop + (hasToolbar ? 32 : 0)}px` }}>
+      <div className={styles.content} ref={contentRef} style={{ paddingTop: `${maxTop + (hasToolbar ? 36 : 0)}px` }}>
         <CollectList scrollTop={scrollTop} minTop={minTop} maxTop={maxTop} hasToolbar={hasToolbar} />
       </div>
     </div>

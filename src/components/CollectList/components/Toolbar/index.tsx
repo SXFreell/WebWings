@@ -1,6 +1,7 @@
 import styles from './index.module.less'
 
 import { Breadcrumb, Button, Space, Typography } from '@arco-design/web-react'
+import { IconFolderAdd, IconSubscribeAdd } from '@arco-design/web-react/icon'
 
 const Toolbar = (
   props: { scrollTop: number, minTop: number, maxTop: number } = { scrollTop: 0, minTop: 0, maxTop: 0 },
@@ -13,15 +14,19 @@ const Toolbar = (
         {Array.from({ length: 5 }).map((_, i) => (
           <Breadcrumb.Item key={i}>
             <Typography.Ellipsis
-              style={{ maxWidth: 70 }}
+              style={{ maxWidth: 98 }}
               showTooltip
-            >收藏夹收藏</Typography.Ellipsis>
+            >收藏夹收藏收藏1</Typography.Ellipsis>
           </Breadcrumb.Item>
         ))}
       </Breadcrumb>
       <Space>
-        <Button type='text' size='small'>新建文件夹</Button>
-        <Button type='text' size='small'>新建收藏</Button>
+        <Button size='small' icon={<IconFolderAdd />}>
+          文件夹
+        </Button>
+        <Button size='small' icon={<IconSubscribeAdd />}>
+          收藏
+        </Button>
       </Space>
     </div>
   )

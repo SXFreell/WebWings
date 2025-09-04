@@ -10,6 +10,7 @@ import {
   IconTags,
   IconMindMapping,
   IconList,
+  IconMoreVertical,
 } from '@arco-design/web-react/icon'
 import { useState } from 'react'
 import { useAtom } from 'jotai'
@@ -35,22 +36,22 @@ const getPercentHeight = (
   )
 }
 
-type DropListItem<T> = { label: string, key: T, icon: React.ReactNode }
+type DropListItem<T> = { label: string, key: T, icon: React.ReactNode, disabled?: boolean }
 
 // 排序下拉菜单
 const sortDropList: DropListItem<FavoriteConfig['sort']>[] = [
   { label: '默认排序', key: 'custom', icon: <IconAlignLeft /> },
-  { label: '按时间顺序', key: 'timeAsc', icon: <IconSortAscending /> },
-  { label: '按时间倒序', key: 'timeDesc', icon: <IconSortDescending /> },
-  { label: '按标题顺序', key: 'nameAsc', icon: <IconSortAscending /> },
-  { label: '按标题倒序', key: 'nameDesc', icon: <IconSortDescending /> },
+  { label: '按时间顺序', key: 'timeAsc', icon: <IconSortAscending />, disabled: true },
+  { label: '按时间倒序', key: 'timeDesc', icon: <IconSortDescending />, disabled: true },
+  { label: '按标题顺序', key: 'nameAsc', icon: <IconSortAscending />, disabled: true },
+  { label: '按标题倒序', key: 'nameDesc', icon: <IconSortDescending />, disabled: true },
 ]
 
 // 视图切换下拉菜单
 const viewDropList: DropListItem<FavoriteConfig['view']>[] = [
   { label: '列表视图', key: 'list', icon: <IconList /> },
-  { label: '图标视图', key: 'icon', icon: <IconTags /> },
-  { label: '树视图', key: 'tree', icon: <IconMindMapping /> },
+  { label: '图标视图', key: 'icon', icon: <IconTags />, disabled: true },
+  { label: '树视图', key: 'tree', icon: <IconMindMapping />, disabled: true },
 ]
 
 const getItemByKey = <T extends string>(key: T, list: DropListItem<T>[]) => {
@@ -67,7 +68,7 @@ const getDropMenu = <T extends string>(list: DropListItem<T>[], onClick: (key: T
   return (
     <Menu>
       {list.map(item => (
-        <Menu.Item key={item.key} onClick={() => onClick(item.key)} className={item.key === currentValue ? styles.dropMenuItemActive : ''}>
+        <Menu.Item key={item.key} onClick={() => onClick(item.key)} className={item.key === currentValue ? styles.dropMenuItemActive : ''} disabled={item.disabled}>
           {item.icon} {item.label}
         </Menu.Item>
       ))}
@@ -148,6 +149,9 @@ const Header = (
               {getItemByKey(view, viewDropList).label}
             </Button>
           </Dropdown>
+          <Button type='secondary' size='small'>
+            <IconMoreVertical />
+          </Button>
         </Space>
       </div>
     </div>
