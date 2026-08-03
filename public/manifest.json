@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "WebWings",
+  "description": "轻量、清晰的浏览器收藏夹",
+  "version": "1.0.0",
+  "permissions": ["tabs"],
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "WebWings 收藏夹"
+  }
+}
