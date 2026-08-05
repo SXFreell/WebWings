@@ -125,13 +125,13 @@
 
 ## 12. Verification, deployment and operations
 
-- [ ] 12.1 Add cross-namespace integration tests covering HTTP endpoints, WebSocket channels, snapshots, bind sessions and administrator metadata.
-- [ ] 12.2 Add randomized multi-device operation tests that permute field patches, moves, deletes, creates, imports and duplicate deliveries and assert convergence.
-- [ ] 12.3 Add retention tests for event pruning, snapshot fallback, tombstone expiry, Key pending-delete recovery and permanent cleanup.
-- [ ] 12.4 Add security tests for credential leakage in logs/errors/backups, Key enumeration, expired bind tokens, revoked sessions and unauthorized namespace IDs.
-- [ ] 12.5 Add payload and tree-size limits with tests for oversized imports, deep/cyclic trees and paginated large delete/import events.
-- [ ] 12.6 Add server Dockerfile, PostgreSQL-backed Docker Compose setup, health/readiness endpoints and migration startup procedure.
-- [ ] 12.7 Document HTTPS reverse-proxy deployment, required environment variables, database and pepper backup, default administrator capture and administrator reset recovery.
-- [ ] 12.8 Document client connection, permission prompts, first-bind backup choices, Key rotation/deletion behavior and the limits of realtime while Chrome is closed.
-- [ ] 12.9 Add CI commands that build and test the extension, shared protocol package and server, run database integration tests and validate the OpenSpec change.
+- [x] 12.1 Add cross-namespace integration tests covering HTTP endpoints, WebSocket channels, snapshots, bind sessions and administrator metadata.
+- [x] 12.2 Add randomized multi-device operation tests that permute field patches, moves, deletes, creates, imports and duplicate deliveries and assert convergence.
+- [x] 12.3 Add retention tests for event pruning, snapshot fallback, tombstone expiry, Key pending-delete recovery and permanent cleanup.
+- [x] 12.4 Add security tests for credential leakage in logs/errors/backups, Key enumeration, expired bind tokens, revoked sessions and unauthorized namespace IDs.
+- [x] 12.5 Add payload and tree-size limits with tests for oversized imports, deep/cyclic trees and paginated large delete/import events.
+- [x] 12.6 Add server Dockerfile, PostgreSQL-backed Docker Compose setup, health/readiness endpoints and migration startup procedure.
+- [x] 12.7 Document HTTPS reverse-proxy deployment, required environment variables, database and pepper backup, default administrator capture and administrator reset recovery.
+- [x] 12.8 Document client connection, permission prompts, first-bind backup choices, Key rotation/deletion behavior and the limits of realtime while Chrome is closed.
+- [x] 12.9 Add CI commands that build and test the extension, shared protocol package and server, run database integration tests and validate the OpenSpec change.
 - [ ] 12.10 Run the full test suite and production builds, then perform a manual two-profile Chrome verification covering first bind, realtime sync, offline recovery and administrator Key management.

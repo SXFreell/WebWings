@@ -109,8 +109,7 @@ describe('realtime hint channel', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     FakeWebSocket.instances[0].onmessage?.({ data: JSON.stringify({ type: 'sync_hint', epoch: 1, seq: 9 }) })
-    await new Promise((resolve) => setTimeout(resolve, 20))
-    expect(pulls.length).toBeGreaterThan(0)
+    await vi.waitFor(() => expect(pulls.length).toBeGreaterThan(0))
     expect(pulls[0]).toContain('/v1/sync/pull')
   })
 

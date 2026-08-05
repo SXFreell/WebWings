@@ -16,6 +16,7 @@ export interface SyncJobsResult {
   snapshotsCreated: number
   eventsPruned: number
   snapshotsPruned: number
+  tombstonesExpired: number
   bindSessionsExpired: number
   namespacesPurged: string[]
 }
@@ -44,6 +45,7 @@ export class SyncJobs {
       let snapshotsCreated = 0
       let eventsPruned = 0
       let snapshotsPruned = 0
+      let tombstonesExpired = 0
 
       const namespaceIds = (await client.query<{ id: string }>('select id from namespaces')).rows.map((row) => row.id)
       for (const namespaceId of namespaceIds) {
@@ -67,6 +69,15 @@ export class SyncJobs {
           await snapshots.deleteBefore(namespaceId, usable.seq)
           snapshotsPruned += Number(before.rows[0]?.count ?? 0)
         }
+
+        const cutoff = new Date(Date.now() - this.config.deleteRetentionDays * 86_400_000).toISOString()
+        const expired = await client.query<{ count: string }>(
+          `delete from bookmark_nodes
+           where namespace_id = $1 and deleted_at is not null and deleted_at < $2
+           returning id`,
+          [namespaceId, cutoff],
+        )
+        tombstonesExpired += expired.rowCount ?? 0
       }
 
       const expiredBind = await new BindSessionRepo(client).markExpired()
@@ -91,6 +102,7 @@ export class SyncJobs {
         snapshotsCreated,
         eventsPruned,
         snapshotsPruned,
+        tombstonesExpired,
         bindSessionsExpired: expiredBind,
         namespacesPurged: purged,
       }

@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: webwings
+      POSTGRES_PASSWORD: ${WEBWINGS_DB_PASSWORD:?set WEBWINGS_DB_PASSWORD}
+      POSTGRES_DB: webwings
+    volumes:
+      - webwings-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webwings"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://webwings:${WEBWINGS_DB_PASSWORD}@db:5432/webwings
+      SRKEY_PEPPER: ${SRKEY_PEPPER:?set SRKEY_PEPPER (32+ random bytes, back it up)}
+      WEBWINGS_ADMIN_SRKEY: ${WEBWINGS_ADMIN_SRKEY:-}
+      PORT: "8787"
+      WEBWINGS_INSTANCE_ID: ${WEBWINGS_INSTANCE_ID:-}
+    ports:
+      - "8787:8787"
+    restart: unless-stopped
+
+volumes:
+  webwings-pgdata:

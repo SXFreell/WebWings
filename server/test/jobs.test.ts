@@ -10,7 +10,25 @@ import { SnapshotRepo } from '../src/repos/snapshots'
 import { NodeRepo } from '../src/repos/nodes'
 import { DeviceRepo } from '../src/repos/devices'
 import { SnapshotService } from '../src/services/snapshots'
+import { OperationService } from '../src/services/operations'
+import { SessionService } from '../src/sessions'
 import { createPgMemPool, testConfig } from './helpers/pgmem'
+import type { SyncOperation } from '@webwings/sync-protocol'
+
+const now = () => new Date().toISOString()
+
+const nodeInput = (id: string) => ({
+  id,
+  type: 'bookmark' as const,
+  parentId: null,
+  title: id,
+  url: 'https://example.com',
+  createdAt: now(),
+  updatedAt: now(),
+})
+
+const op = (opId: string, type: SyncOperation['type'], body: Record<string, unknown>): SyncOperation =>
+  ({ v: 1, opId, deviceId: 'dev-1', syncEpoch: 1, type, ...body }) as SyncOperation
 
 describe('scheduled jobs', () => {
   let pool: Awaited<ReturnType<typeof createPgMemPool>>
@@ -64,6 +82,32 @@ describe('scheduled jobs', () => {
     expect(await new NamespaceRepo(pool).get(createdRow!.namespaceId)).toBeNull()
     expect((await new KeyRepo(pool).get(active.keyId))?.status).toBe('active')
     void active
+  })
+
+  it('expires tombstones after the retention window and keeps recent ones', async () => {
+    const key = (await new KeyRepo(pool).list())[0]
+    const sessionService = new SessionService(pool, config)
+    const device = await new DeviceRepo(pool).createDevice(key.id, 'tombstone device', null)
+    const issued = await sessionService.issueForDevice(key, device.id)
+    const ctx = (await sessionService.authenticateAccess(issued.accessToken))!
+    const ops = new OperationService(pool, config.maxNodesPerImport)
+
+    await ops.push(ctx, [op('op-old', 'create_node', { node: nodeInput('old') })])
+    await ops.push(ctx, [op('op-recent', 'create_node', { node: nodeInput('recent') })])
+    await ops.push(ctx, [op('op-del-old', 'delete_tree', { nodeId: 'old' })])
+    await ops.push(ctx, [op('op-del-recent', 'delete_tree', { nodeId: 'recent' })])
+
+    await pool.query('update bookmark_nodes set deleted_at = $1 where namespace_id = $2 and id = $3', [
+      new Date(Date.now() - config.deleteRetentionDays * 86_400_000 - 60_000).toISOString(),
+      key.namespaceId,
+      'old',
+    ])
+
+    const jobs = new SyncJobs(pool, config, createLogger('error', new PassThrough()), noopLock)
+    const result = await jobs.run()
+    expect(result.tombstonesExpired).toBe(1)
+    expect(await new NodeRepo(pool).get(key.namespaceId, 'old')).toBeNull()
+    expect((await new NodeRepo(pool).get(key.namespaceId, 'recent'))?.deletedAt).toBeTruthy()
   })
 
   it('expires stale bind sessions', async () => {

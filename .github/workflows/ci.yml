@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: webwings
+          POSTGRES_PASSWORD: webwings-ci-password
+          POSTGRES_DB: webwings
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U webwings"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://webwings:webwings-ci-password@localhost:5432/webwings
+      SRKEY_PEPPER: webwings-ci-pepper-not-a-production-secret
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm test:protocol
+      - run: pnpm test:server
+      - run: pnpm test:server:postgres
+      - run: pnpm build
+      - run: pnpm build:server
+      - run: openspec validate add-srkey-cloud-sync --strict

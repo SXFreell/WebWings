@@ -1,9 +1,10 @@
 import type pg from 'pg'
 import { randomUUID } from 'node:crypto'
+import { fileURLToPath } from 'node:url'
 import { buildApp, type AppDeps } from './app'
 import { loadConfig } from './config'
 import { createLogger } from './logger'
-import { createPool } from './db'
+import { createPool, migrate } from './db'
 import { bootstrapAdmin, KeyService } from './keys'
 import { createRateLimiter } from './rateLimit'
 import { RealtimeHub } from './realtime'
@@ -17,6 +18,7 @@ const main = async () => {
   const logger = createLogger(config.logLevel)
   if (!config.databaseUrl) throw new Error('DATABASE_URL is required')
   const pool = createPool(config.databaseUrl)
+  await migrate(pool, fileURLToPath(new URL('../migrations', import.meta.url)))
 
   const instance = await ensureInstanceId(pool, config)
   await bootstrapAdmin(pool, config)

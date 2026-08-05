@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -10,6 +11,8 @@
     "test": "vitest run",
     "test:protocol": "pnpm --filter @webwings/sync-protocol test",
     "test:server": "pnpm --filter webwings-server test",
+    "test:server:postgres": "pnpm --filter webwings-server exec vitest run test/postgres.integration.test.ts",
+    "verify": "pnpm test && pnpm test:protocol && pnpm test:server && pnpm build && pnpm build:server && openspec validate add-srkey-cloud-sync --strict",
     "build:server": "pnpm --filter webwings-server build",
     "typecheck:server": "pnpm --filter webwings-server typecheck"
   },
