@@ -34,34 +34,34 @@
 
 ## 4. Server discovery and connection APIs
 
-- [ ] 4.1 Implement `GET /v1/info` with service name, protocol version, stable instance ID, server time, minimum client version and advertised capabilities.
+- [x] 4.1 Implement `GET /v1/info` with service name, protocol version, stable instance ID, server time, minimum client version and advertised capabilities.
 - [ ] 4.2 Add discovery compatibility tests covering invalid service identity, unsupported protocol versions and clients below the minimum version.
-- [ ] 4.3 Implement `POST /v1/bind/start` so srkey validation creates only a limited, expiring bind session and provisional device identity.
-- [ ] 4.4 Ensure bind, authentication and management endpoints never accept namespace overrides from request payloads.
-- [ ] 4.5 Add API security tests for malformed URLs in payloads, oversized requests, credential redaction and indistinguishable invalid-Key responses.
+- [x] 4.3 Implement `POST /v1/bind/start` so srkey validation creates only a limited, expiring bind session and provisional device identity.
+- [x] 4.4 Ensure bind, authentication and management endpoints never accept namespace overrides from request payloads.
+- [x] 4.5 Add API security tests for malformed URLs in payloads, oversized requests, credential redaction and indistinguishable invalid-Key responses.
 
 ## 5. Authoritative bookmark operations
 
-- [ ] 5.1 Add position-key utilities and tests for inserting between neighbors, deterministic ID tie-breaking and order-preserving rebalance.
-- [ ] 5.2 Implement server-side node and tree validation for types, URL protocols, parent existence, namespace ownership and directory cycles.
-- [ ] 5.3 Implement idempotent node creation with server sequence allocation, field versions and deterministic concurrent sibling ordering.
-- [ ] 5.4 Implement field-level node patch operations so unrelated concurrent fields merge and same-field writes resolve by server acceptance order.
-- [ ] 5.5 Implement node and directory move operations with cycle rejection and authoritative corrective results for rejected optimistic moves.
-- [ ] 5.6 Implement atomic directory-tree soft deletion, delete batches and rejection of stale updates that would resurrect tombstones.
-- [ ] 5.7 Implement explicit restore operations and the namespace `lost+found` behavior for creates whose target parent was already deleted.
-- [ ] 5.8 Implement atomic import operations that reuse existing validation and ID remapping semantics without URL/title deduplication.
-- [ ] 5.9 Implement idempotent `POST /v1/sync/push` batches with per-operation receipts for accepted and deterministic rejected results.
-- [ ] 5.10 Add concurrency tests for different-field edits, same-field edits, competing moves, delete-versus-edit, create-under-deleted-parent and concurrent inserts.
+- [x] 5.1 Add position-key utilities and tests for inserting between neighbors, deterministic ID tie-breaking and order-preserving rebalance.
+- [x] 5.2 Implement server-side node and tree validation for types, URL protocols, parent existence, namespace ownership and directory cycles.
+- [x] 5.3 Implement idempotent node creation with server sequence allocation, field versions and deterministic concurrent sibling ordering.
+- [x] 5.4 Implement field-level node patch operations so unrelated concurrent fields merge and same-field writes resolve by server acceptance order.
+- [x] 5.5 Implement node and directory move operations with cycle rejection and authoritative corrective results for rejected optimistic moves.
+- [x] 5.6 Implement atomic directory-tree soft deletion, delete batches and rejection of stale updates that would resurrect tombstones.
+- [x] 5.7 Implement explicit restore operations and the namespace `lost+found` behavior for creates whose target parent was already deleted.
+- [x] 5.8 Implement atomic import operations that reuse existing validation and ID remapping semantics without URL/title deduplication.
+- [x] 5.9 Implement idempotent `POST /v1/sync/push` batches with per-operation receipts for accepted and deterministic rejected results.
+- [x] 5.10 Add concurrency tests for different-field edits, same-field edits, competing moves, delete-versus-edit, create-under-deleted-parent and concurrent inserts.
 
 ## 6. Events, pull, snapshots and realtime delivery
 
-- [ ] 6.1 Implement paginated `GET /v1/sync/pull` with epoch validation, strict sequence order and a `snapshot_required` response for expired cursors.
-- [ ] 6.2 Implement canonical snapshot creation and `GET /v1/sync/snapshot` with digest, epoch, sequence, active nodes and recoverable tombstones.
-- [ ] 6.3 Add snapshot scheduling and event-retention cleanup that never removes events before a usable later snapshot exists.
-- [ ] 6.4 Add tests proving retrying a push returns the original receipt and retrying a pull from the same cursor returns the same ordered events.
-- [ ] 6.5 Implement namespace-authenticated WebSocket connections that publish only epoch/latest-sequence hints and close immediately on Key or device revocation.
-- [ ] 6.6 Add PostgreSQL `LISTEN/NOTIFY` wakeups for multi-process realtime delivery while keeping pull as the authoritative data path.
-- [ ] 6.7 Implement advisory-lock protection for snapshot, retention and cleanup jobs so only one server process performs each scheduled run.
+- [x] 6.1 Implement paginated `GET /v1/sync/pull` with epoch validation, strict sequence order and a `snapshot_required` response for expired cursors.
+- [x] 6.2 Implement canonical snapshot creation and `GET /v1/sync/snapshot` with digest, epoch, sequence, active nodes and recoverable tombstones.
+- [x] 6.3 Add snapshot scheduling and event-retention cleanup that never removes events before a usable later snapshot exists.
+- [x] 6.4 Add tests proving retrying a push returns the original receipt and retrying a pull from the same cursor returns the same ordered events.
+- [x] 6.5 Implement namespace-authenticated WebSocket connections that publish only epoch/latest-sequence hints and close immediately on Key or device revocation.
+- [x] 6.6 Add PostgreSQL `LISTEN/NOTIFY` wakeups for multi-process realtime delivery while keeping pull as the authoritative data path.
+- [x] 6.7 Implement advisory-lock protection for snapshot, retention and cleanup jobs so only one server process performs each scheduled run.
 
 ## 7. IndexedDB migration and local data boundary
 

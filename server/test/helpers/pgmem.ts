@@ -11,7 +11,7 @@ export const createPgMemPool = async () => {
   return pool
 }
 
-export const testConfig = () =>
+export const testConfig = (overrides: Record<string, string> = {}) =>
   loadConfig({
     SRKEY_PEPPER: 'test-pepper-value-with-enough-length',
     WEBWINGS_INSTANCE_ID: 'srv_test_instance',
@@ -20,4 +20,5 @@ export const testConfig = () =>
     WEBWINGS_REFRESH_TOKEN_TTL_DAYS: '180',
     WEBWINGS_BIND_SESSION_TTL_MINUTES: '120',
     WEBWINGS_DELETE_RETENTION_DAYS: '30',
+    ...overrides,
   })

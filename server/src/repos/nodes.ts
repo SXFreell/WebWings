@@ -53,6 +53,17 @@ export class NodeRepo {
     return result.rows
   }
 
+  /** Children including tombstones; position allocation must avoid deleted rows. */
+  async getChildren(namespaceId: string, parentId: string): Promise<NodeRow[]> {
+    const result = await this.db.query<NodeRow>(
+      `select ${COLUMNS} from bookmark_nodes
+       where namespace_id = $1 and parent_id = $2
+       order by position_key, id`,
+      [namespaceId, parentId],
+    )
+    return result.rows
+  }
+
   /** All nodes including tombstones; used for backups and snapshots. */
   async getAll(namespaceId: string): Promise<NodeRow[]> {
     const result = await this.db.query<NodeRow>(
@@ -80,7 +91,13 @@ export class NodeRepo {
     return Number(result.rows[0].count)
   }
 
-  async insert(namespaceId: string, node: NodeInsert, version: number, seq: number): Promise<NodeRow> {
+  async insert(
+    namespaceId: string,
+    node: NodeInsert,
+    version: number,
+    seq: number,
+    recoveryReason: string | null = null,
+  ): Promise<NodeRow> {
     const fieldVersions: Record<string, number> = { title: seq }
     if (node.url !== undefined && node.url !== null) fieldVersions.url = seq
     if (node.favicon !== undefined && node.favicon !== null) fieldVersions.favicon = seq
@@ -103,7 +120,7 @@ export class NodeRepo {
         JSON.stringify(fieldVersions),
         node.createdAt,
         node.updatedAt,
-        null,
+        recoveryReason,
       ],
     )
     return result.rows[0]
@@ -117,18 +134,20 @@ export class NodeRepo {
     version: number,
     seq: number,
   ): Promise<NodeRow | null> {
+    const existing = await this.get(namespaceId, id)
+    if (!existing || existing.deletedAt) return null
+    const fieldVersions = { ...existing.fieldVersions }
     const sets: string[] = ['updated_at = now()', 'version = $3']
     const params: unknown[] = [namespaceId, id, version]
     for (const [key, value] of Object.entries(fields)) {
       params.push(value ?? null)
       sets.push(`${key} = $${params.length}`)
+      fieldVersions[key] = seq
     }
-    let fieldExpression = 'field_versions'
-    for (const key of Object.keys(fields)) {
-      fieldExpression = `jsonb_set(${fieldExpression}, '{${key}}', '${seq}'::jsonb)`
-    }
+    params.push(JSON.stringify(fieldVersions))
+    sets.push(`field_versions = $${params.length}::jsonb`)
     const result = await this.db.query<NodeRow>(
-      `update bookmark_nodes set ${sets.join(', ')}, ${fieldExpression}
+      `update bookmark_nodes set ${sets.join(', ')}
        where namespace_id = $1 and id = $2 and deleted_at is null
        returning ${COLUMNS}`,
       params,
@@ -146,10 +165,10 @@ export class NodeRepo {
   ): Promise<NodeRow | null> {
     const result = await this.db.query<NodeRow>(
       `update bookmark_nodes
-       set parent_id = $4, position_key = $5, updated_at = now(), version = $6
+       set parent_id = $3, position_key = $4, updated_at = now(), version = $5
        where namespace_id = $1 and id = $2 and deleted_at is null
        returning ${COLUMNS}`,
-      [namespaceId, id, newParentId, positionKey, version, seq],
+      [namespaceId, id, newParentId, positionKey, version],
     )
     return result.rows[0] ?? null
   }

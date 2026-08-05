@@ -15,6 +15,7 @@ export interface CreateBindSessionInput {
   bindTokenHash: string
   syncEpoch: number
   cloudSeq: number
+  cloudDigest: string
   cloudHasData: boolean
   cloudSnapshot: unknown
   expiresAt: string
@@ -26,9 +27,9 @@ export class BindSessionRepo {
   async create(input: CreateBindSessionInput): Promise<BindSessionRow> {
     const result = await this.db.query<BindSessionRow>(
       `insert into bind_sessions
-        (id, key_id, device_id, bind_token_hash, sync_epoch, cloud_seq,
-         cloud_has_data, cloud_snapshot, expires_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (id, key_id, device_id, bind_token_hash, sync_epoch, cloud_seq,
+        cloud_digest, cloud_has_data, cloud_snapshot, expires_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        returning ${COLUMNS}`,
       [
         input.id,
@@ -37,6 +38,7 @@ export class BindSessionRepo {
         input.bindTokenHash,
         input.syncEpoch,
         input.cloudSeq,
+        input.cloudDigest,
         input.cloudHasData,
         JSON.stringify(input.cloudSnapshot ?? null),
         input.expiresAt,

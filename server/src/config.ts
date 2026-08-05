@@ -15,6 +15,7 @@ const envSchema = z.object({
   WEBWINGS_SNAPSHOT_INTERVAL_EVENTS: z.coerce.number().int().positive().default(500),
   WEBWINGS_MAX_PUSH_OPS: z.coerce.number().int().positive().default(200),
   WEBWINGS_MAX_NODES_PER_IMPORT: z.coerce.number().int().positive().default(5000),
+  WEBWINGS_MAX_BODY_BYTES: z.coerce.number().int().positive().default(5_000_000),
   WEBWINGS_LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 })
 
@@ -32,6 +33,7 @@ export interface ServerConfig {
   snapshotIntervalEvents: number
   maxPushOps: number
   maxNodesPerImport: number
+  maxBodyBytes: number
   logLevel: 'debug' | 'info' | 'warn' | 'error'
   minClientVersion: string
 }
@@ -58,6 +60,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ServerConfig =
     snapshotIntervalEvents: config.WEBWINGS_SNAPSHOT_INTERVAL_EVENTS,
     maxPushOps: config.WEBWINGS_MAX_PUSH_OPS,
     maxNodesPerImport: config.WEBWINGS_MAX_NODES_PER_IMPORT,
+    maxBodyBytes: config.WEBWINGS_MAX_BODY_BYTES,
     logLevel: config.WEBWINGS_LOG_LEVEL,
     minClientVersion: PROTOCOL_MIN_CLIENT_VERSION,
   }
