@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
+import { FolderCascader } from '@/components/bookmarks/FolderCascader'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ROOT_FOLDER } from '@/features/bookmarks/constants'
 import type { CurrentPage } from '@/lib/browser'
-import { flattenFolders } from '@/lib/bookmark-tree'
 import type { BookmarkNode, FolderNode } from '@/types'
 
 interface BookmarkDialogProps {
@@ -71,13 +69,13 @@ export function BookmarkDialog({ open, initial, folders, defaultParentId, onOpen
           <div className="space-y-2"><Label htmlFor="bookmark-url">链接</Label><Input id="bookmark-url" value={url} onChange={(event) => setUrl(event.target.value)} spellCheck={false} /></div>
           <div className="space-y-2">
             <Label>保存到</Label>
-            <Select value={parentId ?? ROOT_FOLDER} onValueChange={(value) => setParentId(value === ROOT_FOLDER ? null : value)}>
-              <SelectTrigger><SelectValue placeholder="选择目录" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ROOT_FOLDER}>未分类</SelectItem>
-                {flattenFolders(folders).map(({ folder, depth }) => <SelectItem key={folder.id} value={folder.id}>{'　'.repeat(depth)}{folder.title}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <FolderCascader
+              folders={folders}
+              value={parentId}
+              onValueChange={setParentId}
+              rootLabel="未分类"
+              ariaLabel="保存到"
+            />
           </div>
           {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>}
           <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>取消</Button><Button type="submit" disabled={saving}>{saving ? '保存中…' : '保存'}</Button></DialogFooter>

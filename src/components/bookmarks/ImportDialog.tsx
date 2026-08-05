@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FileJson, FolderInput } from 'lucide-react'
+import { FolderCascader } from '@/components/bookmarks/FolderCascader'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ROOT_FOLDER } from '@/features/bookmarks/constants'
 import { validateImport } from '@/lib/bookmarks-db'
-import { flattenFolders, folderPath } from '@/lib/bookmark-tree'
+import { folderPath } from '@/lib/bookmark-tree'
 import type { ExportPayload, FolderNode } from '@/types'
 
 interface ImportDialogProps {
@@ -100,13 +99,13 @@ export function ImportDialog({ open, folders, initialTargetId, targetLocked, onO
             {targetLocked ? (
               <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm"><FolderInput className="size-4 text-muted-foreground" /><span className="truncate">{targetName}</span></div>
             ) : (
-              <Select value={targetId ?? ROOT_FOLDER} onValueChange={(value) => setTargetId(value === ROOT_FOLDER ? null : value)}>
-                <SelectTrigger><SelectValue placeholder="选择目标目录" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ROOT_FOLDER}>根目录</SelectItem>
-                  {flattenFolders(folders).map(({ folder, depth }) => <SelectItem key={folder.id} value={folder.id}>{'　'.repeat(depth)}{folder.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <FolderCascader
+                folders={folders}
+                value={targetId}
+                onValueChange={setTargetId}
+                rootLabel="根目录"
+                ariaLabel="导入到"
+              />
             )}
           </div>
           {error && <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive">{error}</p>}
