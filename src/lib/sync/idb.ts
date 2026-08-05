@@ -116,7 +116,9 @@ export const withStore = async <T>(
 
 export const getAll = async <T>(storeName: string): Promise<T[]> => withStore(storeName, 'readonly', (store) => requestToPromise(store.getAll() as IDBRequest<T[]>))
 
-export const put = async <T>(storeName: string, value: T): Promise<void> => withStore(storeName, 'readwrite', (store) => requestToPromise(store.put(value as IDBValidKey)))
+export const put = async <T>(storeName: string, value: T): Promise<void> => {
+  await withStore(storeName, 'readwrite', (store) => requestToPromise(store.put(value as IDBValidKey)))
+}
 
 export const get = async <T>(storeName: string, key: string): Promise<T | undefined> => withStore(storeName, 'readonly', async (store) => {
   const result = await requestToPromise(store.get(key) as IDBRequest<T | undefined>)

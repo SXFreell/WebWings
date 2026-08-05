@@ -71,7 +71,9 @@ export const putNode = async (node: FavoriteNode): Promise<void> => {
   const patch: Record<string, string> = {}
   if (node.title !== existing.title) patch.title = node.title.trim()
   if (node.type === 'bookmark' && existing.type === 'bookmark' && node.url !== existing.url) patch.url = node.url.trim()
-  if (node.favicon !== existing.favicon) patch.favicon = node.favicon ?? ''
+  if (node.type === 'bookmark' && existing.type === 'bookmark' && node.favicon !== existing.favicon) {
+    patch.favicon = node.favicon ?? ''
+  }
   if (Object.keys(patch).length > 0) {
     await localPatchNode(node.id, patch, existing.syncVersion ?? 1)
   }

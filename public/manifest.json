@@ -3,7 +3,13 @@
   "name": "WebWings",
   "description": "轻量、清晰的浏览器收藏夹",
   "version": "1.0.0",
-  "permissions": ["tabs"],
+  "minimum_chrome_version": "116",
+  "permissions": ["tabs", "storage", "downloads", "alarms"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "action": {
     "default_popup": "index.html",
     "default_title": "WebWings 收藏夹"

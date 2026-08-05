@@ -37,6 +37,35 @@ export interface BindingRecord {
   lastSyncAt: string | null
 }
 
+export type BindStep = 'started' | 'backup_created' | 'backup_downloaded' | 'backup_proven' | 'completed' | 'cancelled'
+
+/** Resumable first-bind session persisted across popup/worker restarts. */
+export interface BindSessionRecord {
+  id: 'active'
+  bindSessionId: string
+  serverUrl: string
+  origin: string
+  instanceId: string
+  keyId: string
+  keyPrefix: string
+  role: 'admin' | 'sync'
+  capabilities: string[]
+  bindToken: string
+  expiresAt: string
+  cloud: { hasData: boolean; cloudSeq: number; syncEpoch: number }
+  createdAt: string
+  step: BindStep
+  cloudNodes: import('@webwings/sync-protocol').SyncNode[]
+  cloudDigest: string
+  localRevision: number
+  localDigest: string
+  backupArchiveName: string | null
+  downloadedAt: string | null
+  strategy: 'initialize_cloud' | 'use_cloud' | 'use_local' | 'merge' | null
+  operationId: string | null
+  error: string | null
+}
+
 export interface OutboxEntry {
   id: string
   seq: number
@@ -55,6 +84,9 @@ export const readOutbox = async (): Promise<OutboxEntry[]> => (await getAll<Outb
 export const writeMeta = (meta: LocalMeta): Promise<void> => put(STORE.meta, meta)
 export const writeBinding = (binding: BindingRecord): Promise<void> => put(STORE.binding, binding)
 export const clearBinding = (): Promise<void> => withStore(STORE.binding, 'readwrite', (store) => requestToPromise(store.delete('active')))
+export const writeBindSession = (session: BindSessionRecord): Promise<void> => put(STORE.bindSessions, session)
+export const readBindSession = (): Promise<BindSessionRecord | undefined> => get<BindSessionRecord>(STORE.bindSessions, 'active')
+export const clearBindSession = (): Promise<void> => withStore(STORE.bindSessions, 'readwrite', (store) => requestToPromise(store.delete('active')))
 
 const now = () => new Date().toISOString()
 const makeId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
@@ -124,6 +156,38 @@ export interface CreatedLocalNode {
   meta: LocalMeta
 }
 
+interface NodeFields {
+  id: string
+  type: 'folder' | 'bookmark'
+  parentId: string | null
+  title: string
+  order: number
+  createdAt: string
+  updatedAt: string
+  positionKey: string
+  url?: string
+  favicon?: string
+}
+
+const buildNode = (fields: NodeFields): FavoriteNode => {
+  const base = {
+    id: fields.id,
+    parentId: fields.parentId,
+    title: fields.title,
+    order: fields.order,
+    createdAt: fields.createdAt,
+    updatedAt: fields.updatedAt,
+    positionKey: fields.positionKey,
+    syncVersion: 1,
+    deletedAt: null,
+    deleteBatchId: null,
+    recoveryReason: null,
+  }
+  return fields.type === 'bookmark'
+    ? { ...base, type: 'bookmark' as const, url: fields.url!, ...(fields.favicon ? { favicon: fields.favicon } : {}) }
+    : { ...base, type: 'folder' as const }
+}
+
 export const localCreateNode = async (input: SyncNodeCreateInput): Promise<CreatedLocalNode> => {
   const db = await openDatabase()
   try {
@@ -141,7 +205,7 @@ export const localCreateNode = async (input: SyncNodeCreateInput): Promise<Creat
     const positionKey = input.positionKey
       ? normalizePosition(input.positionKey)
       : nextPosition(siblings.map((node) => node.positionKey ?? '').filter(Boolean))
-    const node: FavoriteNode = {
+    const node = buildNode({
       id: input.id,
       type: input.type,
       parentId: input.parentId,
@@ -150,12 +214,9 @@ export const localCreateNode = async (input: SyncNodeCreateInput): Promise<Creat
       createdAt: input.createdAt ?? timestamp,
       updatedAt: input.updatedAt ?? timestamp,
       positionKey,
-      syncVersion: 1,
-      deletedAt: null,
-      deleteBatchId: null,
-      recoveryReason: null,
-      ...(input.type === 'bookmark' ? { url: input.url!, ...(input.favicon ? { favicon: input.favicon } : {}) } : {}),
-    }
+      url: input.type === 'bookmark' ? input.url : undefined,
+      favicon: input.type === 'bookmark' ? input.favicon : undefined,
+    })
     await requestToPromise(nodesStore.put(node))
     const op: SyncOperation = {
       v: 1,
@@ -344,7 +405,7 @@ export const localImportNodes = async (inputs: SyncNodeCreateInput[]): Promise<v
       const importedSiblings = byParent.get(parentKey) ?? []
       const siblings = [...existingSiblings, ...importedSiblings]
       const positionKey = nextPosition(siblings.map((node) => node.positionKey ?? '').filter(Boolean))
-      const node: FavoriteNode = {
+      const node = buildNode({
         id: input.id,
         type: input.type,
         parentId: input.parentId,
@@ -353,12 +414,9 @@ export const localImportNodes = async (inputs: SyncNodeCreateInput[]): Promise<v
         createdAt: input.createdAt ?? timestamp,
         updatedAt: input.updatedAt ?? timestamp,
         positionKey,
-        syncVersion: 1,
-        deletedAt: null,
-        deleteBatchId: null,
-        recoveryReason: null,
-        ...(input.type === 'bookmark' && input.url ? { url: input.url, ...(input.favicon ? { favicon: input.favicon } : {}) } : {}),
-      }
+        url: input.type === 'bookmark' ? input.url : undefined,
+        favicon: input.type === 'bookmark' ? input.favicon : undefined,
+      })
       byParent.set(parentKey, [...importedSiblings, node])
       await requestToPromise(nodesStore.put(node))
     }
@@ -379,21 +437,24 @@ export const localImportNodes = async (inputs: SyncNodeCreateInput[]): Promise<v
   }
 }
 
-const toLocalNode = (node: SyncNode, order: number): FavoriteNode => ({
-  id: node.id,
-  type: node.type,
-  parentId: node.parentId,
-  title: node.title,
-  order,
-  createdAt: node.createdAt,
-  updatedAt: node.updatedAt,
-  positionKey: node.positionKey,
-  syncVersion: node.version,
-  deletedAt: node.deletedAt,
-  deleteBatchId: null,
-  recoveryReason: node.recoveryReason,
-  ...(node.type === 'bookmark' && node.url ? { url: node.url, ...(node.favicon ? { favicon: node.favicon } : {}) } : {}),
-})
+const toLocalNode = (node: SyncNode, order: number): FavoriteNode => {
+  const base = {
+    id: node.id,
+    parentId: node.parentId,
+    title: node.title,
+    order,
+    createdAt: node.createdAt,
+    updatedAt: node.updatedAt,
+    positionKey: node.positionKey,
+    syncVersion: node.version,
+    deletedAt: node.deletedAt,
+    deleteBatchId: null,
+    recoveryReason: node.recoveryReason,
+  }
+  return node.type === 'bookmark' && node.url
+    ? { ...base, type: 'bookmark' as const, url: node.url, ...(node.favicon ? { favicon: node.favicon } : {}) }
+    : { ...base, type: 'folder' as const }
+}
 
 const recomputeOrders = async (nodesStore: IDBObjectStore, all: FavoriteNode[]): Promise<void> => {
   const byParent = new Map<string | null, FavoriteNode[]>()

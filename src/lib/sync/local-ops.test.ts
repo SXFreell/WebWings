@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { SnapshotPayload, SyncEvent } from '@webwings/sync-protocol'
+import type { FavoriteNode } from '../../types'
 import { STORE, getAll, get, openDatabase } from './idb'
 import {
   applyRemoteEvents,
@@ -150,7 +151,7 @@ describe('IndexedDB migration and local sync ops', () => {
       },
     ]
     await applyRemoteEvents(events, 2, 1)
-    const nodes = await getAll(STORE.nodes)
+    const nodes = await getAll<FavoriteNode>(STORE.nodes)
     expect(nodes.find((node) => node.id === 'remote-1')).toMatchObject({ deletedAt: expect.any(String) })
     const meta = await readMeta()
     expect(meta?.cursor).toBe(2)
@@ -191,7 +192,7 @@ describe('IndexedDB migration and local sync ops', () => {
       ],
     }
     await installSnapshot(snapshot)
-    const nodes = await getAll(STORE.nodes)
+    const nodes = await getAll<FavoriteNode>(STORE.nodes)
     expect(nodes.map((node) => node.id).sort()).toEqual(['cloud-1', 'local-1'])
     expect(nodes.find((node) => node.id === 'cloud-1')).toBeTruthy()
     expect((await readMeta())?.cursor).toBe(7)
@@ -229,7 +230,7 @@ describe('IndexedDB migration and local sync ops', () => {
         updatedAt: new Date().toISOString(),
       },
     ])
-    const nodes = await getAll(STORE.nodes)
+    const nodes = await getAll<FavoriteNode>(STORE.nodes)
     expect(nodes).toHaveLength(3)
     const importedFolder = nodes.find((node) => node.type === 'folder' && node.title === 'folder')!
     const kid = nodes.find((node) => node.title === 'kid')!

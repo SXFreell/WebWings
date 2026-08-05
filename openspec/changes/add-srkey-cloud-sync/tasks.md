@@ -35,7 +35,7 @@
 ## 4. Server discovery and connection APIs
 
 - [x] 4.1 Implement `GET /v1/info` with service name, protocol version, stable instance ID, server time, minimum client version and advertised capabilities.
-- [ ] 4.2 Add discovery compatibility tests covering invalid service identity, unsupported protocol versions and clients below the minimum version.
+- [x] 4.2 Add discovery compatibility tests covering invalid service identity, unsupported protocol versions and clients below the minimum version.
 - [x] 4.3 Implement `POST /v1/bind/start` so srkey validation creates only a limited, expiring bind session and provisional device identity.
 - [x] 4.4 Ensure bind, authentication and management endpoints never accept namespace overrides from request payloads.
 - [x] 4.5 Add API security tests for malformed URLs in payloads, oversized requests, credential redaction and indistinguishable invalid-Key responses.
@@ -77,14 +77,14 @@
 
 ## 8. Extension connection configuration
 
-- [ ] 8.1 Update the Manifest with a module Service Worker, minimum Chrome version, storage/downloads/alarms permissions and runtime optional HTTPS plus loopback host patterns.
-- [ ] 8.2 Add Server URL normalization tests for HTTPS, loopback HTTP, subpaths, trailing slashes, credentials, query strings, fragments and non-loopback HTTP rejection.
-- [ ] 8.3 Implement exact-Origin runtime permission request and permission-revocation detection without contacting the server before permission is granted.
-- [ ] 8.4 Implement the service discovery client and ensure srkey submission cannot occur until identity and version validation succeeds.
-- [ ] 8.5 Implement the Server URL + srkey connection form with masked Key input, permission/error states and a single explicit connect action.
-- [ ] 8.6 Persist only normalized URL, Origin, instance ID, Key ID/prefix, role, device metadata, tokens, epoch and cursor; clear raw srkey after bind completion or cancellation.
-- [ ] 8.7 Implement connection identity checks for same-instance URL migration, different-Key rebinding and unexpected instance changes that suspend uploads.
-- [ ] 8.8 Add tests proving connection failures and candidate connections never replace the active binding or modify local bookmark data.
+- [x] 8.1 Update the Manifest with a module Service Worker, minimum Chrome version, storage/downloads/alarms permissions and runtime optional HTTPS plus loopback host patterns.
+- [x] 8.2 Add Server URL normalization tests for HTTPS, loopback HTTP, subpaths, trailing slashes, credentials, query strings, fragments and non-loopback HTTP rejection.
+- [x] 8.3 Implement exact-Origin runtime permission request and permission-revocation detection without contacting the server before permission is granted.
+- [x] 8.4 Implement the service discovery client and ensure srkey submission cannot occur until identity and version validation succeeds.
+- [x] 8.5 Implement the Server URL + srkey connection form with masked Key input, permission/error states and a single explicit connect action.
+- [x] 8.6 Persist only normalized URL, Origin, instance ID, Key ID/prefix, role, device metadata, tokens, epoch and cursor; clear raw srkey after bind completion or cancellation.
+- [x] 8.7 Implement connection identity checks for same-instance URL migration, different-Key rebinding and unexpected instance changes that suspend uploads.
+- [x] 8.8 Add tests proving connection failures and candidate connections never replace the active binding or modify local bookmark data.
 
 ## 9. First-bind backups and reconciliation
 
