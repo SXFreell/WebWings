@@ -42,7 +42,7 @@
 - `value`：当前目录 ID 或 `null`；
 - `onValueChange`：选择回调；
 - `rootLabel`：根节点显示文案；
-- `placeholder`：无有效路径时的占位文案；
+- `ariaLabel`：触发器的可访问名称；
 - `excludedIds`：不可显示的目录集合；
 - `disabled`：禁用整个选择器。
 
