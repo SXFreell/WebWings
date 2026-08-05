@@ -1,36 +1,36 @@
 ## 1. Workspace and protocol foundation
 
-- [ ] 1.1 Add the pnpm workspace layout while keeping the existing extension at the repository root, and scaffold `server/` plus `packages/sync-protocol/` with independent build and test commands.
-- [ ] 1.2 Define versioned runtime schemas and TypeScript types for service discovery, errors, Key roles, device sessions, nodes, operations, receipts, events, snapshots and cursors.
-- [ ] 1.3 Define schemas for bind sessions, backup manifests, backup proofs and the `cloud`/`local` reconciliation strategies.
-- [ ] 1.4 Add shared protocol fixture tests that validate accepted payloads, reject unknown or malformed versions and run in both extension and server packages.
-- [ ] 1.5 Add server configuration loading for PostgreSQL, `SRKEY_PEPPER`, instance identity, token lifetimes, retention windows, payload limits and public API metadata.
-- [ ] 1.6 Add structured server logging with mandatory redaction for Authorization headers, srkeys, bind/access/refresh tokens and backup contents.
+- [x] 1.1 Add the pnpm workspace layout while keeping the existing extension at the repository root, and scaffold `server/` plus `packages/sync-protocol/` with independent build and test commands.
+- [x] 1.2 Define versioned runtime schemas and TypeScript types for service discovery, errors, Key roles, device sessions, nodes, operations, receipts, events, snapshots and cursors.
+- [x] 1.3 Define schemas for bind sessions, backup manifests, backup proofs and the `cloud`/`local` reconciliation strategies.
+- [x] 1.4 Add shared protocol fixture tests that validate accepted payloads, reject unknown or malformed versions and run in both extension and server packages.
+- [x] 1.5 Add server configuration loading for PostgreSQL, `SRKEY_PEPPER`, instance identity, token lifetimes, retention windows, payload limits and public API metadata.
+- [x] 1.6 Add structured server logging with mandatory redaction for Authorization headers, srkeys, bind/access/refresh tokens and backup contents.
 
 ## 2. PostgreSQL data model and repositories
 
-- [ ] 2.1 Create migrations for `server_settings`, `access_keys` and `namespaces`, including stable instance ID, Key status, role, token version, sync epoch and current sequence constraints.
-- [ ] 2.2 Create migrations for `devices` and `device_sessions`, storing only token digests and supporting expiry and revocation.
-- [ ] 2.3 Create migrations for namespace-scoped `bookmark_nodes` with position, field-version and soft-delete metadata.
-- [ ] 2.4 Create migrations for `sync_events` and `operation_receipts` with unique namespace operation IDs and monotonically allocated namespace sequences.
-- [ ] 2.5 Create migrations for `snapshots` and `bind_sessions`, including immutable source versions, digests, state transitions and expiry.
-- [ ] 2.6 Implement transaction helpers that lock a namespace before allocating a sequence or changing its epoch.
-- [ ] 2.7 Implement namespace-scoped repositories whose public methods derive namespace from authenticated context rather than client input.
-- [ ] 2.8 Add database tests proving identical node IDs can exist in separate namespaces and no repository query, event stream or snapshot crosses namespaces.
+- [x] 2.1 Create migrations for `server_settings`, `access_keys` and `namespaces`, including stable instance ID, Key status, role, token version, sync epoch and current sequence constraints.
+- [x] 2.2 Create migrations for `devices` and `device_sessions`, storing only token digests and supporting expiry and revocation.
+- [x] 2.3 Create migrations for namespace-scoped `bookmark_nodes` with position, field-version and soft-delete metadata.
+- [x] 2.4 Create migrations for `sync_events` and `operation_receipts` with unique namespace operation IDs and monotonically allocated namespace sequences.
+- [x] 2.5 Create migrations for `snapshots` and `bind_sessions`, including immutable source versions, digests, state transitions and expiry.
+- [x] 2.6 Implement transaction helpers that lock a namespace before allocating a sequence or changing its epoch.
+- [x] 2.7 Implement namespace-scoped repositories whose public methods derive namespace from authenticated context rather than client input.
+- [x] 2.8 Add database tests proving identical node IDs can exist in separate namespaces and no repository query, event stream or snapshot crosses namespaces.
 
 ## 3. srkey, administrator and device authentication
 
-- [ ] 3.1 Add failing tests and implement generation and parsing of 32-byte `srk_admin_` and `srk_sync_` secrets with safe display prefixes.
-- [ ] 3.2 Implement HMAC-based srkey lookup with constant-time comparison semantics, uniform invalid/revoked responses and binding rate limits.
-- [ ] 3.3 Implement first-start administrator bootstrap from `WEBWINGS_ADMIN_SRKEY` or one-time generation, ensuring restarts never create a second default administrator.
-- [ ] 3.4 Implement limited bind tokens and opaque device access/refresh sessions, including refresh, explicit revoke, expiry and token-version checks.
-- [ ] 3.5 Add authentication tests proving successful binding never returns stored raw srkey material and revoked or rotated Keys invalidate every existing device session.
-- [ ] 3.6 Implement administrator Key listing with prefix, label, status, device count, data count and last activity but no other namespace content.
-- [ ] 3.7 Implement administrator creation of normal Keys with an empty namespace and one-time full-secret response.
-- [ ] 3.8 Implement normal Key rotation that preserves Key ID and namespace while revoking the old secret, sessions and realtime connections.
-- [ ] 3.9 Implement Key deletion, configurable pending-delete retention, recovery with a new secret and permanent namespace cleanup after expiry.
-- [ ] 3.10 Prevent deletion of the only administrator and add authorization tests proving normal Keys cannot call management APIs.
-- [ ] 3.11 Add a controlled administrator reset command that updates the existing administrator digest and token version in one transaction without changing its namespace.
+- [x] 3.1 Add failing tests and implement generation and parsing of 32-byte `srk_admin_` and `srk_sync_` secrets with safe display prefixes.
+- [x] 3.2 Implement HMAC-based srkey lookup with constant-time comparison semantics, uniform invalid/revoked responses and binding rate limits.
+- [x] 3.3 Implement first-start administrator bootstrap from `WEBWINGS_ADMIN_SRKEY` or one-time generation, ensuring restarts never create a second default administrator.
+- [x] 3.4 Implement limited bind tokens and opaque device access/refresh sessions, including refresh, explicit revoke, expiry and token-version checks.
+- [x] 3.5 Add authentication tests proving successful binding never returns stored raw srkey material and revoked or rotated Keys invalidate every existing device session.
+- [x] 3.6 Implement administrator Key listing with prefix, label, status, device count, data count and last activity but no other namespace content.
+- [x] 3.7 Implement administrator creation of normal Keys with an empty namespace and one-time full-secret response.
+- [x] 3.8 Implement normal Key rotation that preserves Key ID and namespace while revoking the old secret, sessions and realtime connections.
+- [x] 3.9 Implement Key deletion, configurable pending-delete retention, recovery with a new secret and permanent namespace cleanup after expiry.
+- [x] 3.10 Prevent deletion of the only administrator and add authorization tests proving normal Keys cannot call management APIs.
+- [x] 3.11 Add a controlled administrator reset command that updates the existing administrator digest and token version in one transaction without changing its namespace.
 
 ## 4. Server discovery and connection APIs
 
