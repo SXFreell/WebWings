@@ -33,6 +33,29 @@ export const folderPath = (folders: FolderNode[], id: string | null) => {
   return path
 }
 
+export const availableFolders = (folders: FolderNode[], excludedIds = new Set<string>()) => (
+  folders.filter((folder) => !excludedIds.has(folder.id))
+)
+
+export const folderCascaderColumns = (folders: FolderNode[], expandedPathIds: string[]) => {
+  const columns: FolderNode[][] = [sortNodes(folders.filter((folder) => folder.parentId === null))]
+  const visited = new Set<string>()
+  for (const id of expandedPathIds) {
+    if (visited.has(id)) break
+    visited.add(id)
+    const children = sortNodes(folders.filter((folder) => folder.parentId === id))
+    if (!children.length) break
+    columns.push(children)
+  }
+  return columns
+}
+
+export const folderDisplayPath = (folders: FolderNode[], id: string | null, rootLabel: string) => {
+  if (!id) return rootLabel
+  const path = folderPath(folders, id)
+  return path.length ? path.map((folder) => folder.title).join(' / ') : rootLabel
+}
+
 export const flattenFolders = (folders: FolderNode[], excluded = new Set<string>()) => {
   const output: Array<{ folder: FolderNode; depth: number }> = []
   const walk = (parentId: string | null, depth: number) => {
