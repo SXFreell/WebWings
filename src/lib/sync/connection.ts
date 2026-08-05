@@ -32,9 +32,9 @@ export interface CandidateConnection {
 
 export type ConnectionStep = 'permission' | 'discover' | 'bind' | 'done'
 
-const hasPermission = async (origin: string): Promise<boolean> => {
+const hasPermission = async (hostPattern: string): Promise<boolean> => {
   if (typeof chrome !== 'undefined' && chrome.permissions?.contains) {
-    return chrome.permissions.contains({ origins: [origin] })
+    return chrome.permissions.contains({ origins: [hostPattern] })
   }
   return true
 }
@@ -44,11 +44,11 @@ const hasPermission = async (origin: string): Promise<boolean> => {
  * before permission is granted.
  */
 export const ensureOriginPermission = async (serverUrl: string): Promise<{ ok: boolean; reason?: string }> => {
-  const origin = originOf(normalizeServerUrl(serverUrl))
-  if (await hasPermission(origin)) return { ok: true }
+  const hostPattern = hostPermissionOf(normalizeServerUrl(serverUrl))
+  if (await hasPermission(hostPattern)) return { ok: true }
   if (typeof chrome === 'undefined' || !chrome.permissions?.request) return { ok: true }
   try {
-    const granted = await chrome.permissions.request({ origins: [origin] })
+    const granted = await chrome.permissions.request({ origins: [hostPattern] })
     return granted ? { ok: true } : { ok: false, reason: '未授予服务器访问权限，无法继续连接' }
   } catch {
     return { ok: false, reason: '权限请求失败，请重试' }

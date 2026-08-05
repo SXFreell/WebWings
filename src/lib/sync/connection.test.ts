@@ -5,6 +5,7 @@ import { readBindSession, readBinding, writeBinding } from './local-ops'
 import {
   classifyConnection,
   disconnectBinding,
+  ensureOriginPermission,
   isInstanceMismatch,
   migrateActiveBinding,
   persistActiveBinding,
@@ -202,6 +203,19 @@ describe('connection flow', () => {
     vi.stubGlobal('fetch', fetchMock)
     await expect(startConnection({ serverUrl: 'https://sync.example.com', srkey: 'srk_sync_x' })).rejects.toThrow('未授予')
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('requests a Chrome host-permission pattern for a bare server origin', async () => {
+    const request = vi.fn(async () => true)
+    vi.stubGlobal('chrome', {
+      permissions: {
+        contains: vi.fn(async () => false),
+        request,
+      },
+    })
+
+    await expect(ensureOriginPermission('http://localhost:8787')).resolves.toEqual({ ok: true })
+    expect(request).toHaveBeenCalledWith({ origins: ['http://localhost:8787/*'] })
   })
 
   it('disconnecting clears the binding and outbox', async () => {
