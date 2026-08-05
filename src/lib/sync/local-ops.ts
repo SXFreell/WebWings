@@ -19,6 +19,26 @@ export interface LocalMeta {
   lastSyncAt: string | null
 }
 
+export type SyncState =
+  | 'idle'
+  | 'syncing'
+  | 'ok'
+  | 'offline'
+  | 'auth_failed'
+  | 'permission_missing'
+  | 'instance_changed'
+  | 'stalled'
+
+export interface SyncStatusRecord {
+  id: 'syncStatus'
+  state: SyncState
+  message: string | null
+  lastAttemptAt: string | null
+  lastSuccessAt: string | null
+  nextRetryAt: string | null
+  attempts: number
+}
+
 export interface BindingRecord {
   id: 'active'
   serverUrl: string
@@ -82,9 +102,11 @@ export const defaultMeta = (): LocalMeta => ({ id: 'meta', localRevision: 0, cur
 
 export const readMeta = (): Promise<LocalMeta | undefined> => get<LocalMeta>(STORE.meta, 'meta')
 export const readBinding = (): Promise<BindingRecord | undefined> => get<BindingRecord>(STORE.binding, 'active')
+export const readSyncStatus = (): Promise<SyncStatusRecord | undefined> => get<SyncStatusRecord>(STORE.meta, 'syncStatus')
 export const readOutbox = async (): Promise<OutboxEntry[]> => (await getAll<OutboxEntry>(STORE.outbox)).sort((a, b) => a.seq - b.seq)
 export const writeMeta = (meta: LocalMeta): Promise<void> => put(STORE.meta, meta)
 export const writeBinding = (binding: BindingRecord): Promise<void> => put(STORE.binding, binding)
+export const writeSyncStatus = (status: SyncStatusRecord): Promise<void> => put(STORE.meta, status)
 export const clearBinding = (): Promise<void> => withStore(STORE.binding, 'readwrite', (store) => requestToPromise(store.delete('active')))
 export const writeBindSession = (session: BindSessionRecord): Promise<void> => put(STORE.bindSessions, session)
 export const readBindSession = (): Promise<BindSessionRecord | undefined> => get<BindSessionRecord>(STORE.bindSessions, 'active')
@@ -692,6 +714,29 @@ export const clearOutbox = async (): Promise<void> => {
     const store = transaction.objectStore(STORE.outbox)
     const all = (await requestToPromise(store.getAll())) as OutboxEntry[]
     for (const entry of all) await requestToPromise(store.delete(entry.id))
+    await transactionDone(transaction)
+    emitLocalChange()
+  } finally {
+    db.close()
+  }
+}
+
+/**
+ * Atomically replaces the pending outbox with the given entries. Used by the
+ * sync engine to drop confirmed or invalidated operations while keeping the
+ * rest of the queue intact.
+ */
+export const replaceOutbox = async (keep: OutboxEntry[]): Promise<void> => {
+  const db = await openDatabase()
+  try {
+    const transaction = db.transaction(STORE.outbox, 'readwrite')
+    const store = transaction.objectStore(STORE.outbox)
+    const keepIds = new Set(keep.map((entry) => entry.id))
+    const all = (await requestToPromise(store.getAll())) as OutboxEntry[]
+    for (const entry of all) {
+      if (!keepIds.has(entry.id)) await requestToPromise(store.delete(entry.id))
+    }
+    for (const entry of keep) await requestToPromise(store.put(entry))
     await transactionDone(transaction)
     emitLocalChange()
   } finally {

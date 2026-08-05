@@ -65,6 +65,12 @@ function App() {
   useEffect(() => { void reload() }, [reload])
   useEffect(() => onLocalChange(() => { void reload() }), [reload])
   useEffect(() => {
+    // Opening the popup is a sync trigger; the Service Worker pulls and pushes.
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      void chrome.runtime.sendMessage({ type: 'webwings-sync-trigger' }).catch(() => undefined)
+    }
+  }, [])
+  useEffect(() => {
     if (!message) return
     const timer = window.setTimeout(() => setMessage(''), 2600)
     return () => window.clearTimeout(timer)

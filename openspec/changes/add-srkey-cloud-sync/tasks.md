@@ -103,15 +103,15 @@
 
 ## 10. Background sync engine
 
-- [ ] 10.1 Register the extension Service Worker and implement startup reconstruction exclusively from persisted binding, cursor, epoch and outbox state.
-- [ ] 10.2 Implement access-token refresh, terminal authentication failure handling and safe pause when host permission or service identity changes.
-- [ ] 10.3 Implement the sync loop to pull first, atomically apply events, then batch and push outbox operations with jittered exponential backoff.
-- [ ] 10.4 Implement receipt processing that removes confirmed outbox entries and applies authoritative corrections for rejected optimistic operations.
-- [ ] 10.5 Implement snapshot-required recovery that installs the current snapshot and replays only operations valid for the current epoch.
-- [ ] 10.6 Implement WebSocket connection, heartbeat, reconnect and latest-sequence-triggered pull without treating notification payloads as data.
-- [ ] 10.7 Trigger recovery on Service Worker startup, browser startup, popup open, network restoration, successful token refresh and periodic alarms.
-- [ ] 10.8 Add crash-boundary tests for termination before send, after send, before receipt persistence and during remote batch application.
-- [ ] 10.9 Add two-device offline/reconnect tests proving eventual convergence without duplicate nodes or lost local edits.
+- [x] 10.1 Register the extension Service Worker and implement startup reconstruction exclusively from persisted binding, cursor, epoch and outbox state.
+- [x] 10.2 Implement access-token refresh, terminal authentication failure handling and safe pause when host permission or service identity changes.
+- [x] 10.3 Implement the sync loop to pull first, atomically apply events, then batch and push outbox operations with jittered exponential backoff.
+- [x] 10.4 Implement receipt processing that removes confirmed outbox entries and applies authoritative corrections for rejected optimistic operations.
+- [x] 10.5 Implement snapshot-required recovery that installs the current snapshot and replays only operations valid for the current epoch.
+- [x] 10.6 Implement WebSocket connection, heartbeat, reconnect and latest-sequence-triggered pull without treating notification payloads as data.
+- [x] 10.7 Trigger recovery on Service Worker startup, browser startup, popup open, network restoration, successful token refresh and periodic alarms.
+- [x] 10.8 Add crash-boundary tests for termination before send, after send, before receipt persistence and during remote batch application.
+- [x] 10.9 Add two-device offline/reconnect tests proving eventual convergence without duplicate nodes or lost local edits.
 
 ## 11. Sync and administrator user experience
 

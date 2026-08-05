@@ -71,6 +71,7 @@ export function SyncSettingsView() {
         setNotice('已连接服务器，首次绑定需要备份与协调')
       }
       await reload()
+      if (intent === 'migration' && active) notifyWorker('webwings-sync-trigger')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '连接失败，请重试')
     } finally {
@@ -85,6 +86,7 @@ export function SyncSettingsView() {
     await disconnectBinding()
     await clearBindSession()
     await reload()
+    notifyWorker('webwings-sync-disconnect')
     setNotice('已断开云同步')
   }
 
@@ -98,7 +100,7 @@ export function SyncSettingsView() {
       {session && !binding ? (
         <FirstBindWizard
           session={session}
-          onDone={() => { void (async () => { await reload(); setNotice('绑定完成，开始同步') })() }}
+          onDone={() => { void (async () => { await reload(); notifyWorker('webwings-sync-trigger'); setNotice('绑定完成，开始同步') })() }}
           onCancel={() => void reload()}
         />
       ) : binding ? (
@@ -182,4 +184,10 @@ export function SyncSettingsView() {
       )}
     </div>
   )
+}
+
+const notifyWorker = (type: string) => {
+  if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+    void chrome.runtime.sendMessage({ type }).catch(() => undefined)
+  }
 }
