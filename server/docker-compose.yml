@@ -25,7 +25,6 @@ services:
       SRKEY_PEPPER: ${SRKEY_PEPPER:?set SRKEY_PEPPER (32+ random bytes, back it up)}
       WEBWINGS_ADMIN_SRKEY: ${WEBWINGS_ADMIN_SRKEY:-}
       PORT: "8787"
-      WEBWINGS_INSTANCE_ID: ${WEBWINGS_INSTANCE_ID:-}
     ports:
       - "8787:8787"
     restart: unless-stopped
