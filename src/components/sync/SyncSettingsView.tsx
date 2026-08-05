@@ -14,6 +14,8 @@ import { clearBindSession, readBindSession, readBinding, type BindSessionRecord,
 import { normalizeServerUrl } from '@/lib/sync/url'
 import { onLocalChange } from '@/lib/sync/notify'
 import { FirstBindWizard } from './FirstBindWizard'
+import { SyncStatusBadge } from './SyncStatusBadge'
+import { AdminKeysView } from './AdminKeysView'
 
 export function SyncSettingsView() {
   const [binding, setBinding] = useState<BindingRecord | null>(null)
@@ -114,10 +116,13 @@ export function SyncSettingsView() {
               </div>
               <div className="mt-0.5 truncate text-xs text-muted-foreground">{binding.serverUrl}</div>
               <div className="mt-0.5 text-[11px] text-muted-foreground">
-                {binding.lastSyncAt ? `上次同步 ${new Date(binding.lastSyncAt).toLocaleString('zh-CN')}` : '尚未同步'}
+                设备 ·{binding.deviceId.slice(-6)} {binding.lastSyncAt ? `· 上次同步 ${new Date(binding.lastSyncAt).toLocaleString('zh-CN')}` : '· 尚未同步'}
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => void disconnect()}><Unplug className="size-4" />断开</Button>
+            <div className="flex flex-col items-end gap-2">
+              <SyncStatusBadge />
+              <Button variant="outline" size="sm" onClick={() => void disconnect()}><Unplug className="size-4" />断开</Button>
+            </div>
           </div>
           {session && (
             <div className="border-t px-4 py-3 text-xs text-muted-foreground">
@@ -182,6 +187,7 @@ export function SyncSettingsView() {
           </div>
         </div>
       )}
+      {binding && <AdminKeysView />}
     </div>
   )
 }

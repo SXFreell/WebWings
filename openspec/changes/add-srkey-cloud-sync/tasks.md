@@ -115,13 +115,13 @@
 
 ## 11. Sync and administrator user experience
 
-- [ ] 11.1 Add a connection summary showing Server URL, Key prefix, role, device and last successful synchronization without exposing raw credentials.
-- [ ] 11.2 Add a low-interruption sync status component for sustained offline, permission, authentication, instance-change, epoch and stalled-outbox states.
-- [ ] 11.3 Keep normal successful synchronization visually silent and verify bookmark browsing and editing remain usable during retries.
-- [ ] 11.4 Add the administrator-only Key management view and load only management metadata from the connected server.
-- [ ] 11.5 Add normal Key creation with copy/download affordance and an explicit warning that the full secret is shown once.
-- [ ] 11.6 Add rotation, delete, pending-delete recovery and permanent-delete confirmations, including protection for the only administrator.
-- [ ] 11.7 Add UI authorization tests proving normal Keys never render management actions and administrator actions cannot navigate into other Key contents.
+- [x] 11.1 Add a connection summary showing Server URL, Key prefix, role, device and last successful synchronization without exposing raw credentials.
+- [x] 11.2 Add a low-interruption sync status component for sustained offline, permission, authentication, instance-change, epoch and stalled-outbox states.
+- [x] 11.3 Keep normal successful synchronization visually silent and verify bookmark browsing and editing remain usable during retries.
+- [x] 11.4 Add the administrator-only Key management view and load only management metadata from the connected server.
+- [x] 11.5 Add normal Key creation with copy/download affordance and an explicit warning that the full secret is shown once.
+- [x] 11.6 Add rotation, delete, pending-delete recovery and permanent-delete confirmations, including protection for the only administrator.
+- [x] 11.7 Add UI authorization tests proving normal Keys never render management actions and administrator actions cannot navigate into other Key contents.
 
 ## 12. Verification, deployment and operations
 

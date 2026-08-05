@@ -95,7 +95,7 @@ const runCycle = async (reason: string): Promise<void> => {
       return
     }
     const client = new SyncClient(binding.serverUrl)
-    const access = await ensureAccessToken(binding, client)
+    const access = await getFreshAccessToken(binding, client)
     if (!access.ok) {
       await setStatus(access.state, access.message)
       return
@@ -117,7 +117,7 @@ const runCycle = async (reason: string): Promise<void> => {
   }
 }
 
-const ensureAccessToken = async (
+export const getFreshAccessToken = async (
   binding: BindingRecord,
   client: SyncClient,
 ): Promise<{ ok: true; token: string } | { ok: false; state: Extract<SyncState, 'auth_failed'>; message: string }> => {
