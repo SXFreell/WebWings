@@ -148,6 +148,7 @@ export const saveCandidateSession = async (candidate: CandidateConnection): Prom
     step: 'started',
     cloudNodes: [],
     cloudDigest: '',
+    localNodes: [],
     localRevision: 0,
     localDigest: '',
     backupArchiveName: null,

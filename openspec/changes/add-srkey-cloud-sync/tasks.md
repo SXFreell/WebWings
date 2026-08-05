@@ -88,18 +88,18 @@
 
 ## 9. First-bind backups and reconciliation
 
-- [ ] 9.1 Implement server creation of immutable bind-session cloud snapshots locked to instance, Key, cloud sequence and sync epoch.
-- [ ] 9.2 Implement client capture of a consistent local snapshot and local revision without blocking ordinary local-only data reads.
-- [ ] 9.3 Implement `webwings-sync-backup` ZIP serialization with `manifest.json`, `cloud.json`, `local.json`, SHA-256 digests and credential exclusion tests.
-- [ ] 9.4 Integrate the downloads API and keep reconciliation actions disabled until the generated archive reaches completed download state.
-- [ ] 9.5 Implement backup-proof recording and bind-session state transitions, expiry and persistence across popup or Service Worker termination.
-- [ ] 9.6 Implement cloud-empty completion that atomically initializes the namespace from local data after both empty/non-empty backups exist.
-- [ ] 9.7 Implement “使用云端” by atomically installing the locked cloud snapshot locally and then pulling events after the snapshot sequence.
-- [ ] 9.8 Implement “使用本地” with compare-and-swap replacement, epoch increment, reset notification and rejection of old-epoch device operations.
-- [ ] 9.9 Implement “合并” as an atomic cloud-preserving import with ID remapping, tree preservation, stable root append order and no semantic deduplication.
-- [ ] 9.10 Make bind completion idempotent by operation ID and invalidate the session when instance, Key, cloud sequence, epoch or local revision changes.
-- [ ] 9.11 Build the resumable first-bind wizard for backup, cloud-empty initialization, three-strategy selection, progress, cancellation and version-invalidated restart.
-- [ ] 9.12 Add end-to-end tests for empty/empty, empty/local, cloud/local, all three choices, download failure, version race, retry after lost response and Key revocation mid-bind.
+- [x] 9.1 Implement server creation of immutable bind-session cloud snapshots locked to instance, Key, cloud sequence and sync epoch.
+- [x] 9.2 Implement client capture of a consistent local snapshot and local revision without blocking ordinary local-only data reads.
+- [x] 9.3 Implement `webwings-sync-backup` ZIP serialization with `manifest.json`, `cloud.json`, `local.json`, SHA-256 digests and credential exclusion tests.
+- [x] 9.4 Integrate the downloads API and keep reconciliation actions disabled until the generated archive reaches completed download state.
+- [x] 9.5 Implement backup-proof recording and bind-session state transitions, expiry and persistence across popup or Service Worker termination.
+- [x] 9.6 Implement cloud-empty completion that atomically initializes the namespace from local data after both empty/non-empty backups exist.
+- [x] 9.7 Implement “使用云端” by atomically installing the locked cloud snapshot locally and then pulling events after the snapshot sequence.
+- [x] 9.8 Implement “使用本地” with compare-and-swap replacement, epoch increment, reset notification and rejection of old-epoch device operations.
+- [x] 9.9 Implement “合并” as an atomic cloud-preserving import with ID remapping, tree preservation, stable root append order and no semantic deduplication.
+- [x] 9.10 Make bind completion idempotent by operation ID and invalidate the session when instance, Key, cloud sequence, epoch or local revision changes.
+- [x] 9.11 Build the resumable first-bind wizard for backup, cloud-empty initialization, three-strategy selection, progress, cancellation and version-invalidated restart.
+- [x] 9.12 Add end-to-end tests for empty/empty, empty/local, cloud/local, all three choices, download failure, version race, retry after lost response and Key revocation mid-bind.
 
 ## 10. Background sync engine
 

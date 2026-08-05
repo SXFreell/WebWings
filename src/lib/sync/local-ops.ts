@@ -57,6 +57,8 @@ export interface BindSessionRecord {
   step: BindStep
   cloudNodes: import('@webwings/sync-protocol').SyncNode[]
   cloudDigest: string
+  /** Frozen local nodes captured at backup time; sent with bind complete. */
+  localNodes: import('@webwings/sync-protocol').SyncNode[]
   localRevision: number
   localDigest: string
   backupArchiveName: string | null
@@ -620,10 +622,16 @@ export const installSnapshot = async (snapshot: SnapshotPayload): Promise<void> 
     const existing = (await requestToPromise(nodesStore.getAll())) as FavoriteNode[]
     const tombstones = existing.filter((node) => node.deletedAt)
     const nodes = snapshot.nodes.map((node) => toLocalNode(node, 0))
-    const seen = new Set<string>()
+    const snapshotIds = new Set(nodes.map((node) => node.id))
+    // The snapshot is authoritative: drop active nodes it does not contain
+    // while keeping tombstones and pending outbox for the reconciliation
+    // policy to decide afterwards.
+    for (const node of existing) {
+      if (!node.deletedAt && !snapshotIds.has(node.id)) {
+        await requestToPromise(nodesStore.delete(node.id))
+      }
+    }
     for (const node of [...nodes, ...tombstones]) {
-      if (seen.has(node.id)) continue
-      seen.add(node.id)
       await requestToPromise(nodesStore.put(node))
     }
     await recomputeOrders(nodesStore, nodes)
@@ -644,24 +652,35 @@ export const installSnapshot = async (snapshot: SnapshotPayload): Promise<void> 
 
 /** Captures a consistent local snapshot: active nodes plus the local revision. */
 export const captureLocalSnapshot = async (): Promise<{ nodes: SyncNode[]; localRevision: number }> => {
-  const nodes = await getAll<FavoriteNode>(STORE.nodes)
-  const meta = (await readMeta()) ?? defaultMeta()
-  const active = nodes.filter((node) => !node.deletedAt)
-  return {
-    nodes: active.map((node) => ({
-      id: node.id,
-      type: node.type,
-      parentId: node.parentId,
-      title: node.title,
-      ...(node.type === 'bookmark' ? { url: node.url, ...(node.favicon ? { favicon: node.favicon } : {}) } : {}),
-      positionKey: node.positionKey ?? nextPosition([]),
-      createdAt: node.createdAt,
-      updatedAt: node.updatedAt,
-      version: node.syncVersion ?? 1,
-      deletedAt: null,
-      recoveryReason: node.recoveryReason ?? null,
-    })),
-    localRevision: meta.localRevision,
+  const db = await openDatabase()
+  try {
+    const transaction = db.transaction([STORE.nodes, STORE.meta], 'readonly')
+    const nodesStore = transaction.objectStore(STORE.nodes)
+    const metaStore = transaction.objectStore(STORE.meta)
+    const [nodes, meta] = await Promise.all([
+      requestToPromise(nodesStore.getAll()) as Promise<FavoriteNode[]>,
+      requestToPromise(metaStore.get('meta')) as Promise<LocalMeta | undefined>,
+    ])
+    await transactionDone(transaction)
+    const active = nodes.filter((node) => !node.deletedAt)
+    return {
+      nodes: active.map((node) => ({
+        id: node.id,
+        type: node.type,
+        parentId: node.parentId,
+        title: node.title,
+        ...(node.type === 'bookmark' ? { url: node.url, ...(node.favicon ? { favicon: node.favicon } : {}) } : {}),
+        positionKey: node.positionKey ?? nextPosition([]),
+        createdAt: node.createdAt,
+        updatedAt: node.updatedAt,
+        version: node.syncVersion ?? 1,
+        deletedAt: null,
+        recoveryReason: node.recoveryReason ?? null,
+      })),
+      localRevision: (meta ?? defaultMeta()).localRevision,
+    }
+  } finally {
+    db.close()
   }
 }
 

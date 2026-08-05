@@ -13,6 +13,7 @@ import {
 import { clearBindSession, readBindSession, readBinding, type BindSessionRecord, type BindingRecord } from '@/lib/sync/local-ops'
 import { normalizeServerUrl } from '@/lib/sync/url'
 import { onLocalChange } from '@/lib/sync/notify'
+import { FirstBindWizard } from './FirstBindWizard'
 
 export function SyncSettingsView() {
   const [binding, setBinding] = useState<BindingRecord | null>(null)
@@ -87,11 +88,6 @@ export function SyncSettingsView() {
     setNotice('已断开云同步')
   }
 
-  const cancelSession = async () => {
-    await clearBindSession()
-    await reload()
-  }
-
   return (
     <div className="mb-4">
       <div className="mb-3">
@@ -100,19 +96,11 @@ export function SyncSettingsView() {
       </div>
 
       {session && !binding ? (
-        <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
-          <div className="flex items-center gap-4 p-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600"><Cloud className="size-5" /></div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium">首次绑定待处理</div>
-              <div className="mt-0.5 truncate text-xs text-muted-foreground">{session.serverUrl}</div>
-              <div className="mt-0.5 text-[11px] text-muted-foreground">
-                Key {session.keyPrefix} · {session.cloud.hasData ? '云端已有数据' : '云端为空'} · 步骤 {session.step}
-              </div>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => void cancelSession()}><X className="size-4" />放弃</Button>
-          </div>
-        </div>
+        <FirstBindWizard
+          session={session}
+          onDone={() => { void (async () => { await reload(); setNotice('绑定完成，开始同步') })() }}
+          onCancel={() => void reload()}
+        />
       ) : binding ? (
         <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
           <div className="flex items-center gap-4 p-4">

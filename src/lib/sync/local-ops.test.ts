@@ -193,8 +193,9 @@ describe('IndexedDB migration and local sync ops', () => {
     }
     await installSnapshot(snapshot)
     const nodes = await getAll<FavoriteNode>(STORE.nodes)
-    expect(nodes.map((node) => node.id).sort()).toEqual(['cloud-1', 'local-1'])
+    expect(nodes.map((node) => node.id).sort()).toEqual(['cloud-1'])
     expect(nodes.find((node) => node.id === 'cloud-1')).toBeTruthy()
+    expect(nodes.find((node) => node.id === 'local-1')).toBeUndefined()
     expect((await readMeta())?.cursor).toBe(7)
     expect((await readMeta())?.epoch).toBe(1)
     expect((await readOutbox()).length).toBeGreaterThan(0)
