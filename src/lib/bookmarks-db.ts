@@ -1,4 +1,5 @@
 import type { BookmarkNode, ExportPayload, FavoriteNode, FolderNode } from '../types'
+import { createFolderExport, createFullExport, remapImportedNodes } from './bookmark-transfer'
 
 const DB_NAME = 'webwings'
 const DB_VERSION = 1
@@ -118,12 +119,11 @@ export const deleteNodeTree = async (id: string): Promise<void> => {
   }
 }
 
-export const exportBookmarks = async (): Promise<ExportPayload> => ({
-  format: 'webwings-bookmarks',
-  version: 1,
-  exportedAt: now(),
-  nodes: await getAllNodes(),
-})
+export const exportBookmarks = async (): Promise<ExportPayload> => createFullExport(await getAllNodes())
+
+export const exportFolderBookmarks = async (folderId: string): Promise<ExportPayload> => (
+  createFolderExport(await getAllNodes(), folderId)
+)
 
 const isValidIsoDate = (value: unknown) => typeof value === 'string' && !Number.isNaN(Date.parse(value))
 
@@ -172,15 +172,26 @@ export const validateImport = (input: unknown): FavoriteNode[] => {
   return payload.nodes
 }
 
-export const replaceAllNodes = async (nodes: FavoriteNode[]): Promise<void> => {
+export const addNodesAtomically = async (nodes: FavoriteNode[]): Promise<void> => {
   const db = await openDatabase()
   try {
     const transaction = db.transaction(NODE_STORE, 'readwrite')
     const store = transaction.objectStore(NODE_STORE)
-    store.clear()
-    nodes.forEach((node) => store.put(node))
+    nodes.forEach((node) => store.add(node))
     await transactionDone(transaction)
   } finally {
     db.close()
   }
+}
+
+export const mergeImport = async (
+  input: unknown,
+  targetParentId: string | null,
+  createId: () => string = makeId,
+): Promise<FavoriteNode[]> => {
+  const validated = validateImport(input)
+  const existing = await getAllNodes()
+  const imported = remapImportedNodes(validated, existing, targetParentId, createId)
+  await addNodesAtomically(imported)
+  return imported
 }
