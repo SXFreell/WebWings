@@ -19,6 +19,11 @@ const folders = [
   folder('react', 'React', 'frontend'),
 ]
 
+const foldersWithRootLeaf = [
+  ...folders,
+  folder('archive', '归档', null, 2),
+]
+
 describe('FolderCascader', () => {
   it('shows the selected full path', () => {
     render(<FolderCascader folders={folders} value="react" onValueChange={() => {}} rootLabel="根目录" ariaLabel="上级目录" />)
@@ -36,6 +41,34 @@ describe('FolderCascader', () => {
     expect(screen.getAllByRole('group', { name: /级目录/ })).toHaveLength(2)
     fireEvent.pointerMove(screen.getByRole('menuitem', { name: /前端/ }))
     expect(within(screen.getAllByRole('group', { name: /级目录/ })[2]).getByText('React')).toBeTruthy()
+  })
+
+  it('selects a nested folder using only the keyboard', async () => {
+    const onValueChange = vi.fn()
+    const user = userEvent.setup()
+    render(<FolderCascader folders={folders} value={null} onValueChange={onValueChange} rootLabel="根目录" ariaLabel="上级目录" />)
+
+    screen.getByRole('button', { name: '上级目录：根目录' }).focus()
+    await user.keyboard('{Enter}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}')
+
+    expect(onValueChange).toHaveBeenCalledWith('react')
+  })
+
+  it('removes stale child columns when hovering a root leaf or the root item', async () => {
+    const user = userEvent.setup()
+    render(<FolderCascader folders={foldersWithRootLeaf} value={null} onValueChange={() => {}} rootLabel="根目录" ariaLabel="上级目录" />)
+
+    await user.click(screen.getByRole('button', { name: '上级目录：根目录' }))
+    fireEvent.pointerMove(screen.getByRole('menuitem', { name: /工作/ }))
+    expect(screen.getAllByRole('group', { name: /级目录/ })).toHaveLength(2)
+
+    fireEvent.pointerMove(screen.getByRole('menuitem', { name: /归档/ }))
+    expect(screen.getAllByRole('group', { name: /级目录/ })).toHaveLength(1)
+
+    fireEvent.pointerMove(screen.getByRole('menuitem', { name: /工作/ }))
+    expect(screen.getAllByRole('group', { name: /级目录/ })).toHaveLength(2)
+    fireEvent.pointerMove(screen.getByRole('menuitem', { name: '根目录' }))
+    expect(screen.getAllByRole('group', { name: /级目录/ })).toHaveLength(1)
   })
 
   it('allows selecting a parent that still has children', async () => {

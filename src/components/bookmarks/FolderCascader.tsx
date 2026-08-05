@@ -28,8 +28,11 @@ export function FolderCascader({ folders, value, onValueChange, rootLabel, ariaL
     setOpen(nextOpen)
   }
 
-  const expandAt = (columnIndex: number, folderId: string) => {
-    setExpandedPath((current) => [...current.slice(0, columnIndex), folderId])
+  const navigateAt = (columnIndex: number, folderId: string | null, hasChildren: boolean) => {
+    setExpandedPath((current) => {
+      const parentPath = current.slice(0, columnIndex)
+      return folderId && hasChildren ? [...parentPath, folderId] : parentPath
+    })
   }
 
   const select = (nextValue: string | null) => {
@@ -50,14 +53,15 @@ export function FolderCascader({ folders, value, onValueChange, rootLabel, ariaL
           {columns.map((column, columnIndex) => (
             <div key={columnIndex} role="group" aria-label={`第 ${columnIndex + 1} 级目录`} className="max-h-64 w-40 shrink-0 overflow-y-auto p-1">
               {columnIndex === 0 && (
-                <DropdownMenuItem onSelect={() => select(null)}>
+                <DropdownMenuItem onPointerMove={() => navigateAt(0, null, false)} onSelect={() => select(null)}>
                   <Folder />{rootLabel}{value === null && <Check className="ml-auto" />}
                 </DropdownMenuItem>
               )}
               {column.map((folder) => {
                 const hasChildren = visibleFolders.some((item) => item.parentId === folder.id)
+                const navigateToFolder = () => navigateAt(columnIndex, folder.id, hasChildren)
                 return (
-                  <DropdownMenuItem key={folder.id} onPointerMove={() => hasChildren && expandAt(columnIndex, folder.id)} onSelect={() => select(folder.id)} className={cn(expandedPath[columnIndex] === folder.id && 'bg-accent')}>
+                  <DropdownMenuItem key={folder.id} onFocus={navigateToFolder} onPointerMove={navigateToFolder} onSelect={() => select(folder.id)} className={cn(expandedPath[columnIndex] === folder.id && 'bg-accent')}>
                     <Folder /><span className="min-w-0 flex-1 truncate">{folder.title}</span>
                     {value === folder.id ? <Check /> : hasChildren ? <ChevronRight /> : null}
                   </DropdownMenuItem>
