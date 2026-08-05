@@ -39,6 +39,7 @@ export interface BindingRecord {
 
 export interface OutboxEntry {
   id: string
+  seq: number
   epoch: number
   deviceId: string
   createdAt: string
@@ -50,7 +51,7 @@ export const defaultMeta = (): LocalMeta => ({ id: 'meta', localRevision: 0, cur
 
 export const readMeta = (): Promise<LocalMeta | undefined> => get<LocalMeta>(STORE.meta, 'meta')
 export const readBinding = (): Promise<BindingRecord | undefined> => get<BindingRecord>(STORE.binding, 'active')
-export const readOutbox = async (): Promise<OutboxEntry[]> => (await getAll<OutboxEntry>(STORE.outbox)).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+export const readOutbox = async (): Promise<OutboxEntry[]> => (await getAll<OutboxEntry>(STORE.outbox)).sort((a, b) => a.seq - b.seq)
 export const writeMeta = (meta: LocalMeta): Promise<void> => put(STORE.meta, meta)
 export const writeBinding = (binding: BindingRecord): Promise<void> => put(STORE.binding, binding)
 export const clearBinding = (): Promise<void> => withStore(STORE.binding, 'readwrite', (store) => requestToPromise(store.delete('active')))
@@ -92,10 +93,11 @@ const toCreateInput = (node: FavoriteNode): SyncNodeCreateInput => ({
   updatedAt: node.updatedAt,
 })
 
-const enqueue = async (store: IDBObjectStore, binding: BindingRecord | null, op: SyncOperation): Promise<void> => {
+const enqueue = async (store: IDBObjectStore, binding: BindingRecord | null, op: SyncOperation, seq: number): Promise<void> => {
   if (!binding) return
   const entry: OutboxEntry = {
     id: op.opId,
+    seq,
     epoch: op.syncEpoch,
     deviceId: binding.deviceId,
     createdAt: now(),
@@ -163,7 +165,7 @@ export const localCreateNode = async (input: SyncNodeCreateInput): Promise<Creat
       type: 'create_node',
       node: toCreateInput(node),
     }
-    await enqueue(outboxStore, binding, op)
+    await enqueue(outboxStore, binding, op, meta.localRevision + 1)
     const updatedMeta = await bumpMeta(metaStore, meta)
     await transactionDone(transaction)
     emitLocalChange()
@@ -204,7 +206,7 @@ export const localPatchNode = async (nodeId: string, patch: NodePatch, baseVersi
       baseVersion,
       patch: Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as NodePatch,
     }
-    await enqueue(outboxStore, binding, op)
+    await enqueue(outboxStore, binding, op, meta.localRevision + 1)
     await bumpMeta(metaStore, meta)
     await transactionDone(transaction)
     emitLocalChange()
@@ -246,7 +248,7 @@ export const localMoveNode = async (nodeId: string, newParentId: string | null):
       nodeId,
       newParentId,
     }
-    await enqueue(outboxStore, binding, op)
+    await enqueue(outboxStore, binding, op, meta.localRevision + 1)
     await bumpMeta(metaStore, meta)
     await transactionDone(transaction)
     emitLocalChange()
@@ -299,7 +301,7 @@ export const localDeleteTree = async (nodeId: string): Promise<string[]> => {
       type: 'delete_tree',
       nodeId,
     }
-    await enqueue(outboxStore, binding, op)
+    await enqueue(outboxStore, binding, op, meta.localRevision + 1)
     await bumpMeta(metaStore, meta)
     await transactionDone(transaction)
     emitLocalChange()
@@ -368,7 +370,7 @@ export const localImportNodes = async (inputs: SyncNodeCreateInput[]): Promise<v
       type: 'import_nodes',
       nodes: remapped,
     }
-    await enqueue(outboxStore, binding, op)
+    await enqueue(outboxStore, binding, op, meta.localRevision + 1)
     await bumpMeta(metaStore, meta)
     await transactionDone(transaction)
     emitLocalChange()
