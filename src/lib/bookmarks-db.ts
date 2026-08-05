@@ -1,129 +1,95 @@
 import type { BookmarkNode, ExportPayload, FavoriteNode, FolderNode } from '../types'
 import { createFolderExport, createFullExport, remapImportedNodes } from './bookmark-transfer'
-
-const DB_NAME = 'webwings'
-const DB_VERSION = 1
-const NODE_STORE = 'nodes'
-
-const requestToPromise = <T>(request: IDBRequest<T>) => new Promise<T>((resolve, reject) => {
-  request.onsuccess = () => resolve(request.result)
-  request.onerror = () => reject(request.error ?? new Error('IndexedDB 操作失败'))
-})
-
-const transactionDone = (transaction: IDBTransaction) => new Promise<void>((resolve, reject) => {
-  transaction.oncomplete = () => resolve()
-  transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB 事务失败'))
-  transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB 事务已取消'))
-})
-
-const openDatabase = () => new Promise<IDBDatabase>((resolve, reject) => {
-  const request = indexedDB.open(DB_NAME, DB_VERSION)
-  request.onupgradeneeded = () => {
-    const db = request.result
-    if (!db.objectStoreNames.contains(NODE_STORE)) {
-      const store = db.createObjectStore(NODE_STORE, { keyPath: 'id' })
-      store.createIndex('parentId', 'parentId', { unique: false })
-      store.createIndex('type', 'type', { unique: false })
-    }
-  }
-  request.onsuccess = () => resolve(request.result)
-  request.onerror = () => reject(request.error ?? new Error('无法打开 IndexedDB'))
-})
+import { STORE } from './sync/idb'
+import { getAll } from './sync/idb'
+import {
+  localCreateNode,
+  localDeleteTree,
+  localImportNodes,
+  localMoveNode,
+  localPatchNode,
+} from './sync/local-ops'
 
 const makeId = () => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
 const now = () => new Date().toISOString()
 
-export const getAllNodes = async (): Promise<FavoriteNode[]> => {
-  const db = await openDatabase()
-  try {
-    return await requestToPromise(db.transaction(NODE_STORE).objectStore(NODE_STORE).getAll())
-  } finally {
-    db.close()
-  }
-}
+const isActive = (node: FavoriteNode) => !node.deletedAt
 
-const nextOrder = (nodes: FavoriteNode[], parentId: string | null) => {
-  const siblings = nodes.filter((node) => node.parentId === parentId)
-  return siblings.length ? Math.max(...siblings.map((node) => node.order)) + 1 : 0
+export const getAllNodes = async (): Promise<FavoriteNode[]> => {
+  const nodes = await getAll<FavoriteNode>(STORE.nodes)
+  return nodes.filter(isActive)
 }
 
 export const createFolder = async (title: string, parentId: string | null): Promise<FolderNode> => {
-  const nodes = await getAllNodes()
   const timestamp = now()
-  const folder: FolderNode = {
+  const { node } = await localCreateNode({
     id: makeId(),
     type: 'folder',
     parentId,
     title: title.trim(),
-    order: nextOrder(nodes, parentId),
     createdAt: timestamp,
     updatedAt: timestamp,
-  }
-  await putNode(folder)
-  return folder
+  })
+  return node as FolderNode
 }
 
 export const createBookmark = async (
   values: Pick<BookmarkNode, 'title' | 'url' | 'favicon'> & { parentId: string | null },
 ): Promise<BookmarkNode> => {
-  const nodes = await getAllNodes()
   const timestamp = now()
-  const bookmark: BookmarkNode = {
+  const { node } = await localCreateNode({
     id: makeId(),
     type: 'bookmark',
     parentId: values.parentId,
     title: values.title.trim(),
     url: values.url.trim(),
-    favicon: values.favicon,
-    order: nextOrder(nodes, values.parentId),
+    ...(values.favicon ? { favicon: values.favicon } : {}),
     createdAt: timestamp,
     updatedAt: timestamp,
-  }
-  await putNode(bookmark)
-  return bookmark
+  })
+  return node as BookmarkNode
 }
 
+/** Saves edits; produces a patch outbox entry when the node is synced. */
 export const putNode = async (node: FavoriteNode): Promise<void> => {
-  const db = await openDatabase()
-  try {
-    const transaction = db.transaction(NODE_STORE, 'readwrite')
-    transaction.objectStore(NODE_STORE).put({ ...node, updatedAt: now() })
-    await transactionDone(transaction)
-  } finally {
-    db.close()
+  const existing = (await getAllNodes()).find((candidate) => candidate.id === node.id)
+  if (!existing) {
+    await localCreateNode({
+      id: node.id,
+      type: node.type,
+      parentId: node.parentId,
+      title: node.title,
+      ...(node.type === 'bookmark' ? { url: node.url, ...(node.favicon ? { favicon: node.favicon } : {}) } : {}),
+      createdAt: node.createdAt,
+      updatedAt: node.updatedAt,
+    })
+    return
+  }
+  if (existing.parentId !== node.parentId) {
+    await localMoveNode(node.id, node.parentId)
+  }
+  const patch: Record<string, string> = {}
+  if (node.title !== existing.title) patch.title = node.title.trim()
+  if (node.type === 'bookmark' && existing.type === 'bookmark' && node.url !== existing.url) patch.url = node.url.trim()
+  if (node.favicon !== existing.favicon) patch.favicon = node.favicon ?? ''
+  if (Object.keys(patch).length > 0) {
+    await localPatchNode(node.id, patch, existing.syncVersion ?? 1)
   }
 }
 
 export const deleteNodeTree = async (id: string): Promise<void> => {
-  const nodes = await getAllNodes()
-  const ids = new Set<string>([id])
-  let changed = true
-  while (changed) {
-    changed = false
-    for (const node of nodes) {
-      if (node.parentId && ids.has(node.parentId) && !ids.has(node.id)) {
-        ids.add(node.id)
-        changed = true
-      }
-    }
-  }
-
-  const db = await openDatabase()
-  try {
-    const transaction = db.transaction(NODE_STORE, 'readwrite')
-    const store = transaction.objectStore(NODE_STORE)
-    ids.forEach((nodeId) => store.delete(nodeId))
-    await transactionDone(transaction)
-  } finally {
-    db.close()
-  }
+  await localDeleteTree(id)
 }
 
-export const exportBookmarks = async (): Promise<ExportPayload> => createFullExport(await getAllNodes())
+export const exportBookmarks = async (): Promise<ExportPayload> => {
+  const nodes = (await getAllNodes()).filter(isActive)
+  return createFullExport(nodes)
+}
 
-export const exportFolderBookmarks = async (folderId: string): Promise<ExportPayload> => (
-  createFolderExport(await getAllNodes(), folderId)
-)
+export const exportFolderBookmarks = async (folderId: string): Promise<ExportPayload> => {
+  const nodes = (await getAllNodes()).filter(isActive)
+  return createFolderExport(nodes, folderId)
+}
 
 const isValidIsoDate = (value: unknown) => typeof value === 'string' && !Number.isNaN(Date.parse(value))
 
@@ -150,7 +116,9 @@ export const validateImport = (input: unknown): FavoriteNode[] => {
       try {
         const url = new URL(node.url)
         if (!['http:', 'https:'].includes(url.protocol)) throw new Error()
-      } catch { throw new Error(`链接格式无效：${node.title}`) }
+      } catch {
+        throw new Error(`链接格式无效：${node.title}`)
+      }
     }
     ids.add(node.id)
   }
@@ -173,15 +141,18 @@ export const validateImport = (input: unknown): FavoriteNode[] => {
 }
 
 export const addNodesAtomically = async (nodes: FavoriteNode[]): Promise<void> => {
-  const db = await openDatabase()
-  try {
-    const transaction = db.transaction(NODE_STORE, 'readwrite')
-    const store = transaction.objectStore(NODE_STORE)
-    nodes.forEach((node) => store.add(node))
-    await transactionDone(transaction)
-  } finally {
-    db.close()
-  }
+  await localImportNodes(
+    nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      parentId: node.parentId,
+      title: node.title,
+      ...(node.type === 'bookmark' ? { url: node.url, ...(node.favicon ? { favicon: node.favicon } : {}) } : {}),
+      positionKey: node.positionKey,
+      createdAt: node.createdAt,
+      updatedAt: node.updatedAt,
+    })),
+  )
 }
 
 export const mergeImport = async (

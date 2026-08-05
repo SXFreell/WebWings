@@ -20,6 +20,7 @@ import {
   putNode,
 } from '@/lib/bookmarks-db'
 import { getDescendantFolderIds } from '@/lib/bookmark-tree'
+import { onLocalChange } from '@/lib/sync/notify'
 import { cn } from '@/lib/utils'
 import type { BookmarkNode, ExportPayload, FavoriteNode, FolderNode } from '@/types'
 
@@ -62,6 +63,7 @@ function App() {
   }, [])
 
   useEffect(() => { void reload() }, [reload])
+  useEffect(() => onLocalChange(() => { void reload() }), [reload])
   useEffect(() => {
     if (!message) return
     const timer = window.setTimeout(() => setMessage(''), 2600)

@@ -65,15 +65,15 @@
 
 ## 7. IndexedDB migration and local data boundary
 
-- [ ] 7.1 Add IndexedDB migration tests that start from the current version 1 database and preserve every existing folder and bookmark.
-- [ ] 7.2 Upgrade local nodes with position keys, sync versions and tombstone metadata, deriving stable initial positions from current `order`, title and ID.
-- [ ] 7.3 Add `outbox`, `meta`, `binding` and `bindSessions` object stores with indexes needed for retry, cursor and active-connection lookup.
-- [ ] 7.4 Implement an atomic local operation API that updates nodes, increments local revision and writes outbox only when an active binding exists.
-- [ ] 7.5 Implement atomic remote-event application that advances the cursor without generating new outbox operations.
-- [ ] 7.6 Implement atomic snapshot installation that preserves pending outbox until the reconciliation policy decides which operations remain valid.
-- [ ] 7.7 Refactor bookmark create, edit, move, delete-tree and import callers to use the local operation API while preserving existing unbound behavior.
-- [ ] 7.8 Keep manual `webwings-bookmarks` v1 full/folder export and merge import compatible, and extend regression tests around those flows.
-- [ ] 7.9 Add local change notifications so popup views reload after local writes, remote event commits and snapshot installation.
+- [x] 7.1 Add IndexedDB migration tests that start from the current version 1 database and preserve every existing folder and bookmark.
+- [x] 7.2 Upgrade local nodes with position keys, sync versions and tombstone metadata, deriving stable initial positions from current `order`, title and ID.
+- [x] 7.3 Add `outbox`, `meta`, `binding` and `bindSessions` object stores with indexes needed for retry, cursor and active-connection lookup.
+- [x] 7.4 Implement an atomic local operation API that updates nodes, increments local revision and writes outbox only when an active binding exists.
+- [x] 7.5 Implement atomic remote-event application that advances the cursor without generating new outbox operations.
+- [x] 7.6 Implement atomic snapshot installation that preserves pending outbox until the reconciliation policy decides which operations remain valid.
+- [x] 7.7 Refactor bookmark create, edit, move, delete-tree and import callers to use the local operation API while preserving existing unbound behavior.
+- [x] 7.8 Keep manual `webwings-bookmarks` v1 full/folder export and merge import compatible, and extend regression tests around those flows.
+- [x] 7.9 Add local change notifications so popup views reload after local writes, remote event commits and snapshot installation.
 
 ## 8. Extension connection configuration
 

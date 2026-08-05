@@ -8,6 +8,14 @@ export interface BaseNode {
   order: number
   createdAt: string
   updatedAt: string
+  /** Server position key; present after the IndexedDB v2 migration. */
+  positionKey?: string
+  /** Server-confirmed version; used as patch base for outbox operations. */
+  syncVersion?: number
+  /** Soft-delete tombstone used by cloud sync. */
+  deletedAt?: string | null
+  deleteBatchId?: string | null
+  recoveryReason?: string | null
 }
 
 export interface FolderNode extends BaseNode {
