@@ -5,15 +5,13 @@ import { BookmarksView } from '@/components/bookmarks/BookmarksView'
 import { FolderDialog } from '@/components/bookmarks/FolderDialog'
 import { FolderTree } from '@/components/bookmarks/FolderTree'
 import { ImportDialog } from '@/components/bookmarks/ImportDialog'
-import { SettingsView } from '@/components/bookmarks/SettingsView'
 import { Button } from '@/components/ui/button'
 import { ALL_BOOKMARKS, type FolderSelection } from '@/features/bookmarks/constants'
-import { getCurrentPage, type CurrentPage } from '@/lib/browser'
+import { getCurrentPage, openSettingsPage, type CurrentPage } from '@/lib/browser'
 import {
   createBookmark,
   createFolder,
   deleteNodeTree,
-  exportBookmarks,
   exportFolderBookmarks,
   getAllNodes,
   mergeImport,
@@ -21,10 +19,7 @@ import {
 } from '@/lib/bookmarks-db'
 import { getDescendantFolderIds } from '@/lib/bookmark-tree'
 import { onLocalChange } from '@/lib/sync/notify'
-import { cn } from '@/lib/utils'
 import type { BookmarkNode, ExportPayload, FavoriteNode, FolderNode } from '@/types'
-
-type ActiveView = 'bookmarks' | 'settings'
 
 const downloadPayload = (payload: ExportPayload, filename: string) => {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
@@ -44,13 +39,12 @@ const dateSuffix = () => new Date().toISOString().slice(0, 10)
 function App() {
   const [nodes, setNodes] = useState<FavoriteNode[]>([])
   const [selected, setSelected] = useState<FolderSelection>(ALL_BOOKMARKS)
-  const [activeView, setActiveView] = useState<ActiveView>('bookmarks')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [bookmarkModal, setBookmarkModal] = useState<{ open: boolean; initial: BookmarkNode | CurrentPage | null }>({ open: false, initial: null })
   const [folderModal, setFolderModal] = useState<{ open: boolean; initial: FolderNode | null; parentId: string | null }>({ open: false, initial: null, parentId: null })
-  const [importModal, setImportModal] = useState<{ open: boolean; targetId: string | null; targetLocked: boolean }>({ open: false, targetId: null, targetLocked: false })
+  const [folderImportModal, setFolderImportModal] = useState<FolderNode | null>(null)
 
   const folders = useMemo(() => nodes.filter((node): node is FolderNode => node.type === 'folder'), [nodes])
   const bookmarks = useMemo(() => nodes.filter((node): node is BookmarkNode => node.type === 'bookmark'), [nodes])
@@ -78,7 +72,6 @@ function App() {
 
   const selectFolder = (selection: FolderSelection) => {
     setSelected(selection)
-    setActiveView('bookmarks')
   }
 
   const addCurrentPage = async () => {
@@ -128,12 +121,6 @@ function App() {
     setMessage('收藏已删除')
   }
 
-  const exportAll = async () => {
-    const payload = await exportBookmarks()
-    downloadPayload(payload, `webwings-bookmarks-${dateSuffix()}.json`)
-    setMessage(`已导出全部 ${bookmarks.length} 条收藏`)
-  }
-
   const exportFolder = async (folder: FolderNode) => {
     const payload = await exportFolderBookmarks(folder.id)
     downloadPayload(payload, `webwings-${safeFilename(folder.title)}-${dateSuffix()}.json`)
@@ -155,8 +142,7 @@ function App() {
   }
 
   const openFolderDialog = (parentId: string | null) => setFolderModal({ open: true, initial: null, parentId })
-  const openSettingsImport = () => setImportModal({ open: true, targetId: null, targetLocked: false })
-  const openFolderImport = (folder: FolderNode) => setImportModal({ open: true, targetId: folder.id, targetLocked: true })
+  const openFolderImport = (folder: FolderNode) => setFolderImportModal(folder)
 
   return (
     <div className="flex h-[580px] w-[760px] overflow-hidden bg-background text-foreground">
@@ -175,7 +161,6 @@ function App() {
             bookmarks={bookmarks}
             selected={selected}
             expanded={expanded}
-            disabled={activeView === 'settings'}
             onSelect={selectFolder}
             onToggle={(id) => setExpanded((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next })}
             onAdd={(parentId) => { setExpanded((current) => new Set(current).add(parentId)); openFolderDialog(parentId) }}
@@ -184,34 +169,30 @@ function App() {
           />
         </div>
         <div className="border-t border-sidebar-border p-2">
-          <Button variant="ghost" className={cn('w-full justify-start text-muted-foreground', activeView === 'settings' && 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary')} onClick={() => setActiveView('settings')}>
+          <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={openSettingsPage}>
             <Settings className="size-4" />设置
           </Button>
         </div>
       </aside>
 
       <main className="flex min-w-0 flex-1">
-        {activeView === 'settings' ? (
-          <SettingsView folderCount={folders.length} bookmarkCount={bookmarks.length} onExportAll={() => void exportAll()} onImport={openSettingsImport} />
-        ) : (
-          <BookmarksView
-            folders={folders}
-            bookmarks={bookmarks}
-            selected={selected}
-            loading={loading}
-            onAddCurrentPage={() => void addCurrentPage()}
-            onAddFolder={openFolderDialog}
-            onEditBookmark={(bookmark) => setBookmarkModal({ open: true, initial: bookmark })}
-            onDeleteBookmark={(bookmark) => void removeBookmark(bookmark)}
-            onExportFolder={(folder) => void exportFolder(folder)}
-            onImportFolder={openFolderImport}
-          />
-        )}
+        <BookmarksView
+          folders={folders}
+          bookmarks={bookmarks}
+          selected={selected}
+          loading={loading}
+          onAddCurrentPage={() => void addCurrentPage()}
+          onAddFolder={openFolderDialog}
+          onEditBookmark={(bookmark) => setBookmarkModal({ open: true, initial: bookmark })}
+          onDeleteBookmark={(bookmark) => void removeBookmark(bookmark)}
+          onExportFolder={(folder) => void exportFolder(folder)}
+          onImportFolder={openFolderImport}
+        />
       </main>
 
       <BookmarkDialog open={bookmarkModal.open} initial={bookmarkModal.initial} folders={folders} defaultParentId={defaultParent} onOpenChange={(open) => setBookmarkModal((current) => ({ ...current, open }))} onSave={saveBookmark} />
       <FolderDialog open={folderModal.open} initial={folderModal.initial} folders={folders} defaultParentId={folderModal.parentId} onOpenChange={(open) => setFolderModal((current) => ({ ...current, open }))} onSave={saveFolder} />
-      <ImportDialog open={importModal.open} folders={folders} initialTargetId={importModal.targetId} targetLocked={importModal.targetLocked} onOpenChange={(open) => setImportModal((current) => ({ ...current, open }))} onImport={importData} />
+      <ImportDialog open={folderImportModal !== null} folders={folders} initialTargetId={folderImportModal?.id ?? null} targetLocked onOpenChange={(open) => { if (!open) setFolderImportModal(null) }} onImport={importData} />
       {message && <div className="fixed bottom-4 left-1/2 z-[100] -translate-x-1/2 rounded-lg bg-foreground px-3.5 py-2 text-xs text-background shadow-xl">{message}</div>}
     </div>
   )

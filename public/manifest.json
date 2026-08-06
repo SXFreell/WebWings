@@ -13,5 +13,9 @@
   "action": {
     "default_popup": "index.html",
     "default_title": "WebWings 收藏夹"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   }
 }

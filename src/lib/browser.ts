@@ -30,3 +30,9 @@ export const openBookmark = (url: string) => {
   }
   window.open(url, '_blank', 'noopener,noreferrer')
 }
+
+export const openSettingsPage = (): void => {
+  if (typeof chrome !== 'undefined' && chrome.runtime?.openOptionsPage) {
+    void chrome.runtime.openOptionsPage()
+  }
+}
