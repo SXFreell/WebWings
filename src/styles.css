@@ -50,7 +50,9 @@
 
 @layer base {
   * { border-color: var(--border); }
-  html, body, #root { width: 760px; height: 580px; overflow: hidden; }
+  html[data-page='popup'], html[data-page='popup'] body, html[data-page='popup'] #root { width: 760px; height: 580px; overflow: hidden; }
+  html[data-page='options'] { width: 100%; min-height: 100vh; overflow-y: auto; }
+  html[data-page='options'] body, html[data-page='options'] #root { width: 100%; min-height: 100vh; overflow: visible; }
   body {
     margin: 0;
     background: var(--background);

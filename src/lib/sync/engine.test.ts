@@ -306,10 +306,12 @@ describe('sync engine', () => {
 
   it('pauses without contacting the server when permission is missing', async () => {
     vi.stubGlobal('fetch', vi.fn())
-    vi.stubGlobal('chrome', { permissions: { contains: vi.fn(async () => false) }, runtime: { sendMessage: vi.fn() } })
-    await writeBinding(binding())
+    const contains = vi.fn(async () => false)
+    vi.stubGlobal('chrome', { permissions: { contains }, runtime: { sendMessage: vi.fn() } })
+    await writeBinding(binding({ serverUrl: 'http://localhost:8787', origin: 'http://localhost:8787' }))
     await triggerSync('test')
     expect((await readSyncStatus())?.state).toBe('permission_missing')
+    expect(contains).toHaveBeenCalledWith({ origins: ['http://localhost:8787/*'] })
     expect(vi.mocked(fetch)).not.toHaveBeenCalled()
   })
 

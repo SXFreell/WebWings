@@ -137,6 +137,7 @@ describe('AdminKeysView', () => {
     stubAdminServer({ list: [summary({ role: 'admin', keyId: 'key-admin' })], deleteFails: true })
     await writeBinding(binding('admin'))
     render(<AdminKeysView />)
+    await screen.findByText('srk_sync_cd')
     await waitFor(() => expect(screen.queryByRole('button', { name: /删除/ })).toBeNull())
   })
 })

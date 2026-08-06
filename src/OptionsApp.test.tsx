@@ -60,6 +60,15 @@ describe('OptionsApp', () => {
     expect(screen.getByText('数据管理')).toBeTruthy()
   })
 
+  it('lays out the settings page for full viewport scrolling without a clipping card', () => {
+    const { container } = render(<OptionsApp />)
+    const root = container.firstElementChild as HTMLElement
+    expect(root.className).toContain('min-h-screen')
+    expect(root.className).toContain('w-full')
+    const clipped = Array.from(container.querySelectorAll<HTMLElement>('[class*="overflow-hidden"]'))
+    expect(clipped.some((el) => el.className.includes('min-h-'))).toBe(false)
+  })
+
   it('opens an import dialog that targets the root by default', async () => {
     const user = userEvent.setup()
     render(<OptionsApp />)

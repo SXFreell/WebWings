@@ -1,10 +1,10 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CloudSnapshot, SnapshotPayload, SyncNode } from '@webwings/sync-protocol'
+import { bindCompleteRequestSchema, parseBindComplete, type CloudSnapshot, type SnapshotPayload, type SyncNode } from '@webwings/sync-protocol'
 import { getAllNodes } from '../bookmarks-db'
 import { localCreateNode } from './local-ops'
 import { readBindSession, readBinding, writeBindSession, type BindSessionRecord } from './local-ops'
-import { completeFirstBind, prepareBackup, submitBackupProof } from './first-bind'
+import { BindRequestError, buildBindCompleteRequest, completeFirstBind, prepareBackup, submitBackupProof } from './first-bind'
 
 const now = () => '2026-08-05T00:00:00.000Z'
 
@@ -84,7 +84,7 @@ const stubServer = (stub: ServerStub) => {
   const proofResponses = stub.proofResponses ?? [{ ok: true, status: 200 }]
   const completeResponses = stub.completeResponses ?? [{ ok: true, status: 200, body: { v: 1, deviceSession, snapshot: snapshot(stub.cloud?.nodes ?? [], stub.cloud?.syncEpoch ?? 1, (stub.cloud?.cloudSeq ?? 0) + 1) } }]
   const calls = { proof: 0, complete: 0 }
-  const completeBodies: Array<{ operationId?: string; strategy?: string }> = []
+  const completeBodies: Array<Record<string, unknown>> = []
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     if (url.includes('/cloud-snapshot')) {
@@ -119,6 +119,120 @@ const stubServer = (stub: ServerStub) => {
 describe('first bind flow', () => {
   beforeEach(deleteDatabase)
   afterEach(() => vi.unstubAllGlobals())
+
+  it('builds and validates the completion request from a persisted empty session', () => {
+    const request = buildBindCompleteRequest(sessionBase(), 'initialize_cloud', 'op-1')
+    expect(bindCompleteRequestSchema.safeParse(request).success).toBe(true)
+    expect(request).toEqual({
+      v: 1,
+      operationId: 'op-1',
+      strategy: 'initialize_cloud',
+      localNodes: [],
+      expected: { cloudSeq: 0, syncEpoch: 1, localRevision: 0 },
+    })
+  })
+
+  it('projects string version fields from a live pg server into protocol numbers', () => {
+    const session = sessionBase({
+      cloud: { hasData: false, cloudSeq: '0', syncEpoch: '1' },
+      localRevision: '0',
+    } as unknown as Partial<BindSessionRecord>)
+    const request = buildBindCompleteRequest(session, 'initialize_cloud', 'op-str')
+    expect(request.expected).toEqual({ cloudSeq: 0, syncEpoch: 1, localRevision: 0 })
+    expect(bindCompleteRequestSchema.safeParse(request).success).toBe(true)
+  })
+
+  it('projects frozen local snapshot nodes into protocol create inputs', () => {
+    const local = node('local-1', { favicon: 'data:image/png;base64,AA==' })
+    const request = buildBindCompleteRequest(sessionBase({ localNodes: [local] }), 'initialize_cloud', 'op-2')
+    expect(request.localNodes).toEqual([
+      {
+        id: 'local-1',
+        type: 'bookmark',
+        parentId: null,
+        title: 'local-1',
+        url: 'https://example.com',
+        favicon: 'data:image/png;base64,AA==',
+        positionKey: '1000',
+        createdAt: now(),
+        updatedAt: now(),
+      },
+    ])
+    const projected = request.localNodes[0]
+    expect('version' in projected).toBe(false)
+    expect('deletedAt' in projected).toBe(false)
+    expect('recoveryReason' in projected).toBe(false)
+  })
+
+  it('refuses to build a completion request when the persisted session is invalid', () => {
+    const invalid = { ...sessionBase(), localRevision: undefined } as unknown as BindSessionRecord
+    expect(() => buildBindCompleteRequest(invalid, 'initialize_cloud', 'op-3')).toThrow(BindRequestError)
+  })
+
+  it('does not send a completion request when the persisted session is invalid', async () => {
+    const server = stubServer({})
+    await writeBindSession({ ...sessionBase(), localRevision: undefined } as unknown as BindSessionRecord)
+
+    await expect(completeFirstBind((await readBindSession())!, 'initialize_cloud')).rejects.toThrow('首次绑定数据与协议不一致')
+    expect(server.calls.complete).toBe(0)
+    expect(await readBinding()).toBeUndefined()
+    expect(await readBindSession()).toBeTruthy()
+  })
+
+  it('reuses a persisted operation id in the validated completion request', async () => {
+    const server = stubServer({
+      cloud: { v: 1, bindSessionId: 'bind-1', cloudSeq: 0, syncEpoch: 1, digest: 'e'.repeat(64), nodes: [] },
+    })
+    await writeBindSession(sessionBase({ operationId: 'op-persisted' }))
+
+    await prepareBackup((await readBindSession())!)
+    await submitBackupProof((await readBindSession())!)
+    const result = await completeFirstBind((await readBindSession())!, 'initialize_cloud')
+    expect(result.ok).toBe(true)
+    expect(server.completeBodies[0]).toMatchObject({ operationId: 'op-persisted' })
+  })
+
+  it('serializes the empty initialize_cloud body through the shared protocol schema', async () => {
+    const server = stubServer({
+      cloud: { v: 1, bindSessionId: 'bind-1', cloudSeq: 0, syncEpoch: 1, digest: 'e'.repeat(64), nodes: [] },
+    })
+    await writeBindSession(sessionBase())
+
+    await prepareBackup((await readBindSession())!)
+    await submitBackupProof((await readBindSession())!)
+    const result = await completeFirstBind((await readBindSession())!, 'initialize_cloud')
+    expect(result.ok).toBe(true)
+    const parsed = parseBindComplete(server.completeBodies[0])
+    expect(parsed.localNodes).toEqual([])
+    expect(parsed.expected).toEqual({ cloudSeq: 0, syncEpoch: 1, localRevision: 0 })
+  })
+
+  it('maps a server invalid_bind_request to a protocol version mismatch message', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.includes('/cloud-snapshot')) {
+        return { ok: true, status: 200, json: async () => ({ v: 1, bindSessionId: 'bind-1', cloudSeq: 0, syncEpoch: 1, digest: 'e'.repeat(64), nodes: [] }) }
+      }
+      if (url.includes('/backup-proof')) return { ok: true, status: 200, json: async () => ({ v: 1, status: 'ok' }) }
+      if (url.includes('/complete')) {
+        return { ok: false, status: 400, json: async () => ({ error: { code: 'invalid_bind_request', message: 'invalid bind request' } }) }
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch)
+    vi.stubGlobal('chrome', { downloads: { download: vi.fn(async () => 1), search: vi.fn(async () => [{ id: 1, state: 'complete' }]) } })
+    await writeBindSession(sessionBase())
+
+    await prepareBackup((await readBindSession())!)
+    await submitBackupProof((await readBindSession())!)
+    const result = await completeFirstBind((await readBindSession())!, 'initialize_cloud')
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.reason).toBe('restart_required')
+      expect(result.message).toContain('协议不兼容')
+    }
+    expect(await readBinding()).toBeUndefined()
+    expect(await readBindSession()).toBeTruthy()
+  })
 
   it('initializes an empty cloud from empty local data (empty/empty)', async () => {
     const server = stubServer({ cloud: { v: 1, bindSessionId: 'bind-1', cloudSeq: 0, syncEpoch: 1, digest: 'e'.repeat(64), nodes: [] } })

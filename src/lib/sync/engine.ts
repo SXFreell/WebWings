@@ -17,6 +17,7 @@ import {
   type SyncState,
 } from './local-ops'
 import { emitLocalChange } from './notify'
+import { hostPermissionOf } from './url'
 
 const nowIso = () => new Date().toISOString()
 const PUSH_BATCH_LIMIT = 200
@@ -33,11 +34,6 @@ const defaultStatus = () => ({
   nextRetryAt: null,
   attempts: 0,
 })
-
-const hasOriginPermission = async (origin: string): Promise<boolean> => {
-  if (typeof chrome === 'undefined' || !chrome.permissions?.contains) return true
-  return chrome.permissions.contains({ origins: [origin] })
-}
 
 const setStatus = async (
   state: SyncState,
@@ -81,7 +77,12 @@ const runCycle = async (reason: string): Promise<void> => {
   if (before.nextRetryAt && Date.parse(before.nextRetryAt) > Date.now()) return
   await setStatus('syncing', null)
   try {
-    if (!(await hasOriginPermission(binding.origin))) {
+    const hostPattern = hostPermissionOf(binding.serverUrl)
+    const hasPermission =
+      typeof chrome === 'undefined' || !chrome.permissions?.contains
+        ? true
+        : await chrome.permissions.contains({ origins: [hostPattern] })
+    if (!hasPermission) {
       await setStatus('permission_missing', '已撤销服务器访问权限，同步已暂停')
       return
     }

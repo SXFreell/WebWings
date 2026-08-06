@@ -48,8 +48,8 @@ export function OptionsApp() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 px-4 py-8 text-foreground sm:px-6">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl overflow-hidden rounded-xl border bg-background shadow-sm">
+    <div className="min-h-screen w-full bg-muted/30 px-4 py-8 text-foreground sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-4xl">
         <SettingsView
           folderCount={folders.length}
           bookmarkCount={bookmarkCount}

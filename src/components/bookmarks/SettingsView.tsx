@@ -11,12 +11,12 @@ interface SettingsViewProps {
 
 export function SettingsView({ folderCount, bookmarkCount, onExportAll, onImport }: SettingsViewProps) {
   return (
-    <section className="flex min-w-0 flex-1 flex-col bg-background">
-      <header className="border-b border-border px-5 py-4">
+    <section className="w-full bg-background">
+      <header className="border-b border-border px-5 py-4 sm:px-6">
         <div className="text-[11px] text-muted-foreground">WebWings</div>
         <h1 className="mt-0.5 text-xl font-semibold tracking-tight">设置</h1>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+      <div className="p-5 sm:p-6">
         <SyncSettingsView />
         <div className="mb-3"><h2 className="text-sm font-semibold">数据管理</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">导出完整备份，或将 WebWings JSON 合并到指定目录。</p></div>
         <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
@@ -35,7 +35,7 @@ export function SettingsView({ folderCount, bookmarkCount, onExportAll, onImport
           <FileJson className="mt-0.5 size-4 shrink-0" /><p>导入采用合并模式，不会删除当前数据。系统会更新导入条目的 ID 和父节点 ID，因此同一备份可以重复导入。</p>
         </div>
       </div>
-      <footer className="flex h-9 items-center border-t border-border px-5 text-[11px] text-muted-foreground">未连接云端时，数据仅保存在本机 IndexedDB</footer>
+      <footer className="flex h-9 items-center border-t border-border px-5 text-[11px] text-muted-foreground sm:px-6">未连接云端时，数据仅保存在本机 IndexedDB</footer>
     </section>
   )
 }

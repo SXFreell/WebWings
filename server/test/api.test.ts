@@ -12,6 +12,8 @@ import { SyncService } from '../src/services/sync'
 import { createPgMemPool, testConfig } from './helpers/pgmem'
 import { KeyRepo } from '../src/repos/keys'
 
+const now = () => new Date().toISOString()
+
 const setup = async (overrides: Record<string, string> = {}) => {
   const pool = await createPgMemPool()
   const config = testConfig(overrides)
@@ -154,6 +156,131 @@ describe('service discovery and bind APIs', () => {
       payload: { v: 1, srkey: 'x'.repeat(500) },
     })
     expect(oversized.statusCode).toBe(413)
+  })
+
+  it('completes an empty first bind over HTTP and establishes an active data space', async () => {
+    const started = await ctx.app.inject({
+      method: 'POST',
+      url: '/v1/bind/start',
+      payload: { v: 1, srkey: ctx.boot.generatedSrkey!, deviceName: 'empty bind' },
+    })
+    expect(started.statusCode).toBe(200)
+    const start = started.json()
+    expect(start.cloud.hasData).toBe(false)
+
+    const snapshot = await ctx.app.inject({
+      method: 'GET',
+      url: `/v1/bind/${start.bindSessionId}/cloud-snapshot`,
+      headers: { authorization: `Bearer ${start.bindToken}` },
+    })
+    expect(snapshot.statusCode).toBe(200)
+    const cloud = snapshot.json()
+    expect(cloud.nodes).toEqual([])
+
+    const proof = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/bind/${start.bindSessionId}/backup-proof`,
+      headers: { authorization: `Bearer ${start.bindToken}` },
+      payload: {
+        v: 1,
+        bindSessionId: start.bindSessionId,
+        cloudDigest: cloud.digest,
+        localDigest: 'a'.repeat(64),
+        localRevision: 0,
+        downloadState: 'complete',
+        downloadedAt: now(),
+      },
+    })
+    expect(proof.statusCode).toBe(200)
+
+    const completed = await ctx.app.inject({
+      method: 'POST',
+      url: `/v1/bind/${start.bindSessionId}/complete`,
+      headers: { authorization: `Bearer ${start.bindToken}` },
+      payload: {
+        v: 1,
+        operationId: 'op-empty-bind',
+        strategy: 'initialize_cloud',
+        localNodes: [],
+        expected: { cloudSeq: start.cloud.cloudSeq, syncEpoch: start.cloud.syncEpoch, localRevision: 0 },
+      },
+    })
+    expect(completed.statusCode).toBe(200)
+    const body = completed.json()
+    expect(body.deviceSession.accessToken).toBeTruthy()
+    expect(body.snapshot.nodes).toEqual([])
+    expect(body.snapshot.seq).toBeGreaterThanOrEqual(1)
+
+    const live = await ctx.app.inject({
+      method: 'GET',
+      url: '/v1/sync/snapshot',
+      headers: { authorization: `Bearer ${body.deviceSession.accessToken}` },
+    })
+    expect(live.statusCode).toBe(200)
+    expect(live.json().nodes).toEqual([])
+  })
+
+  it('logs redacted validation issues for an invalid bind completion request', async () => {
+    const chunks: string[] = []
+    const stream = new PassThrough()
+    stream.on('data', (chunk: Buffer) => chunks.push(chunk.toString()))
+    const pool = ctx.pool
+    const config = ctx.config
+    const sessionService = new SessionService(pool, config)
+    const keyService = new KeyService(pool, config)
+    const operationService = new OperationService(pool, config.maxNodesPerImport)
+    const app = buildApp({
+      pool,
+      config,
+      logger: createLogger('warn', stream),
+      instanceId: 'srv_test_instance',
+      bindLimiter: createRateLimiter({ windowMs: 60_000, max: 100 }),
+      sessionService,
+      keyService,
+      bindService: new BindService(pool, config, sessionService),
+      operationService,
+      syncService: new SyncService(pool, config, operationService),
+      realtime: new RealtimeHub(),
+    })
+    await app.ready()
+
+    const started = await app.inject({
+      method: 'POST',
+      url: '/v1/bind/start',
+      payload: { v: 1, srkey: ctx.boot.generatedSrkey! },
+    })
+    const start = started.json()
+    const invalid = await app.inject({
+      method: 'POST',
+      url: `/v1/bind/${start.bindSessionId}/complete`,
+      headers: { authorization: `Bearer ${start.bindToken}` },
+      payload: {
+        v: 1,
+        operationId: '',
+        strategy: 'initialize_cloud',
+        localNodes: [],
+        expected: { cloudSeq: start.cloud.cloudSeq, syncEpoch: start.cloud.syncEpoch, localRevision: 0 },
+      },
+    })
+    expect(invalid.statusCode).toBe(400)
+    expect(invalid.json().error.code).toBe('invalid_bind_request')
+
+    const line = chunks.find((chunk) => chunk.includes('bind_complete_validation_failed'))
+    expect(line).toBeTruthy()
+    const record = JSON.parse(line!) as {
+      level: string
+      event: string
+      route: string
+      issues: Array<{ path: string; code: string }>
+    }
+    expect(record.level).toBe('warn')
+    expect(record.event).toBe('bind_complete_validation_failed')
+    expect(record.route).toBe('/v1/bind/:sessionId/complete')
+    expect(record.issues).toContainEqual(expect.objectContaining({ path: 'operationId', code: expect.any(String) }))
+    const serialized = JSON.stringify(record)
+    expect(serialized).not.toContain(start.bindToken)
+    expect(serialized).not.toContain('authorization')
+    expect(serialized).not.toContain('initialize_cloud')
   })
 })
 

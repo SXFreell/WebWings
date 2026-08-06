@@ -1,4 +1,4 @@
-import type { BindCompleteRequest } from '@webwings/sync-protocol'
+import { parseBindComplete, type BindCompleteRequest, type SyncNode, type SyncNodeCreateInput } from '@webwings/sync-protocol'
 import { ApiClientError, SyncClient } from './client'
 import { buildBackupArchive } from './backup'
 import { downloadAndWait } from './download'
@@ -20,6 +20,56 @@ export const isBindSessionExpired = (session: BindSessionRecord): boolean =>
   new Date(session.expiresAt).getTime() <= Date.now()
 
 export type BindStrategy = 'initialize_cloud' | 'use_cloud' | 'use_local' | 'merge'
+
+export class BindRequestError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'BindRequestError'
+  }
+}
+
+const toCreateInput = (node: SyncNode): SyncNodeCreateInput => ({
+  id: node.id,
+  type: node.type,
+  parentId: node.parentId,
+  title: node.title,
+  ...(node.type === 'bookmark' && node.url !== undefined ? { url: node.url } : {}),
+  ...(node.favicon !== undefined ? { favicon: node.favicon } : {}),
+  positionKey: node.positionKey,
+  createdAt: node.createdAt,
+  updatedAt: node.updatedAt,
+})
+
+/**
+ * Single boundary for building a protocol-valid bind completion request. The
+ * frozen local snapshot is projected to create inputs so the exact JSON sent
+ * matches the shared server schema.
+ */
+export const buildBindCompleteRequest = (
+  session: BindSessionRecord,
+  strategy: BindStrategy,
+  operationId: string,
+): BindCompleteRequest => {
+  try {
+    return parseBindComplete({
+      v: 1,
+      operationId,
+      strategy,
+      localNodes: session.localNodes.map(toCreateInput),
+      expected: {
+        // Live servers return pg bigint values as strings (e.g. cloudSeq "0");
+        // project them to protocol numbers so the shared schema accepts the
+        // exact JSON that will be sent. Invalid values become NaN and are
+        // rejected by parseBindComplete before any network request.
+        cloudSeq: Number(session.cloud.cloudSeq),
+        syncEpoch: Number(session.cloud.syncEpoch),
+        localRevision: Number(session.localRevision ?? NaN),
+      },
+    })
+  } catch {
+    throw new BindRequestError('首次绑定数据与协议不一致，请求未发送，请重新开始绑定')
+  }
+}
 
 /**
  * Step 1: fetch the locked cloud snapshot, capture a consistent local snapshot
@@ -90,17 +140,7 @@ export const completeFirstBind = async (session: BindSessionRecord, strategy: Bi
     // be retried idempotently with the same operation.
     await writeBindSession({ ...session, operationId })
   }
-  const request: BindCompleteRequest = {
-    v: 1,
-    operationId,
-    strategy,
-    localNodes: session.localNodes,
-    expected: {
-      cloudSeq: session.cloud.cloudSeq,
-      syncEpoch: session.cloud.syncEpoch,
-      localRevision: session.localRevision,
-    },
-  }
+  const request = buildBindCompleteRequest(session, strategy, operationId)
   try {
     const result = await client.bindComplete(session.bindSessionId, session.bindToken, request)
     const { deviceSession, snapshot } = result
@@ -131,6 +171,9 @@ export const completeFirstBind = async (session: BindSessionRecord, strategy: Bi
       await writeBindSession(invalidated)
       emitLocalChange()
       return { ok: false, reason: 'version_changed', message: error.message }
+    }
+    if (error instanceof ApiClientError && error.status === 400 && error.code === 'invalid_bind_request') {
+      return { ok: false, reason: 'restart_required', message: '服务端协议不兼容或版本不一致，请重新连接并确认服务已更新' }
     }
     throw error
   }

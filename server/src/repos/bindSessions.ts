@@ -21,6 +21,23 @@ export interface CreateBindSessionInput {
   expiresAt: string
 }
 
+type RawBindSessionRow = Omit<BindSessionRow, 'cloudSeq' | 'completedSeq' | 'localRevision'> & {
+  cloudSeq: number | string
+  completedSeq: number | string | null
+  localRevision: number | string | null
+}
+
+/**
+ * Postgres returns `bigint` columns as strings; protocol fields must be JSON
+ * numbers, so coerce bind session sequence fields at the repo boundary.
+ */
+export const toBindSessionRow = (row: RawBindSessionRow): BindSessionRow => ({
+  ...row,
+  cloudSeq: Number(row.cloudSeq),
+  completedSeq: row.completedSeq === null ? null : Number(row.completedSeq),
+  localRevision: row.localRevision === null ? null : Number(row.localRevision),
+})
+
 export class BindSessionRepo {
   constructor(private readonly db: Queryable) {}
 
@@ -44,7 +61,7 @@ export class BindSessionRepo {
         input.expiresAt,
       ],
     )
-    return result.rows[0]
+    return toBindSessionRow(result.rows[0])
   }
 
   async get(id: string): Promise<BindSessionRow | null> {
@@ -52,7 +69,7 @@ export class BindSessionRepo {
       `select ${COLUMNS} from bind_sessions where id = $1`,
       [id],
     )
-    return result.rows[0] ?? null
+    return result.rows[0] ? toBindSessionRow(result.rows[0]) : null
   }
 
   async getByTokenHash(hash: string): Promise<BindSessionRow | null> {
@@ -60,7 +77,7 @@ export class BindSessionRepo {
       `select ${COLUMNS} from bind_sessions where bind_token_hash = $1`,
       [hash],
     )
-    return result.rows[0] ?? null
+    return result.rows[0] ? toBindSessionRow(result.rows[0]) : null
   }
 
   async markExpired(): Promise<number> {

@@ -4,6 +4,17 @@ import type { NamespaceRow } from './types'
 const COLUMNS = `id, sync_epoch as "syncEpoch", current_seq as "currentSeq",
   initialized_at as "initializedAt", created_at as "createdAt"`
 
+type RawNamespaceRow = Omit<NamespaceRow, 'currentSeq'> & { currentSeq: number | string }
+
+/**
+ * Postgres returns `bigint` columns as strings; protocol fields must be JSON
+ * numbers, so coerce the namespace sequence at the repo boundary.
+ */
+export const toNamespaceRow = (row: RawNamespaceRow): NamespaceRow => ({
+  ...row,
+  currentSeq: Number(row.currentSeq),
+})
+
 export class NamespaceRepo {
   constructor(private readonly db: Queryable) {}
 
@@ -13,7 +24,7 @@ export class NamespaceRepo {
 
   async get(id: string): Promise<NamespaceRow | null> {
     const result = await this.db.query<NamespaceRow>(`select ${COLUMNS} from namespaces where id = $1`, [id])
-    return result.rows[0] ?? null
+    return result.rows[0] ? toNamespaceRow(result.rows[0]) : null
   }
 
   /** Locks the namespace row for the remainder of the enclosing transaction. */
@@ -22,7 +33,7 @@ export class NamespaceRepo {
       `select ${COLUMNS} from namespaces where id = $1 for update`,
       [id],
     )
-    return result.rows[0] ?? null
+    return result.rows[0] ? toNamespaceRow(result.rows[0]) : null
   }
 
   /**
@@ -72,6 +83,6 @@ export class NamespaceRepo {
        join access_keys k on k.namespace_id = n.id
        where k.status = 'pending_delete' and k.purge_at is not null`,
     )
-    return result.rows
+    return result.rows.map(toNamespaceRow)
   }
 }

@@ -6,8 +6,8 @@ import {
   PROTOCOL_SERVICE,
   PROTOCOL_VERSION,
   backupProofSchema,
+  bindCompleteRequestSchema,
   bindStartRequestSchema,
-  parseBindComplete,
   parsePushRequest,
 } from '@webwings/sync-protocol'
 import { z } from 'zod'
@@ -141,13 +141,17 @@ export const buildApp = (deps: AppDeps): FastifyInstance => {
   app.post('/v1/bind/:sessionId/complete', async (request, reply) => {
     const token = await requireBindToken(request, reply)
     if (!token) return
-    let requestBody
-    try {
-      requestBody = parseBindComplete(request.body)
-    } catch {
+    const parsed = bindCompleteRequestSchema.safeParse(request.body)
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map((issue) => ({ path: issue.path.join('.'), code: issue.code }))
+      deps.logger.warn('invalid bind completion request', {
+        event: 'bind_complete_validation_failed',
+        route: '/v1/bind/:sessionId/complete',
+        issues,
+      })
       return reply.code(400).send(errorBody('invalid_bind_request', 'invalid bind request'))
     }
-    return deps.bindService.complete(token, (request.params as { sessionId: string }).sessionId, requestBody)
+    return deps.bindService.complete(token, (request.params as { sessionId: string }).sessionId, parsed.data)
   })
 
   app.post('/v1/auth/refresh', async (request, reply) => {
